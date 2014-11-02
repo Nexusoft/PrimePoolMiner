@@ -1,0 +1,193 @@
+#ifndef COINSHIELD_LLP_CORE_H
+#define COINSHIELD_LLP_CORE_H
+
+#include "types.h"
+
+namespace Core
+{
+	extern unsigned int *primes;
+	extern unsigned int *inverses;
+
+	extern unsigned int nBitArray_Size;
+	extern mpz_t  zPrimorial;
+
+	extern unsigned int prime_limit;
+	extern unsigned int nPrimeLimit;
+	extern unsigned int nPrimorialEndPrime;
+
+	extern unsigned long octuplet_origins[];
+	
+	void InitializePrimes();
+	unsigned int SetBits(double nDiff);
+	double GetPrimeDifficulty(CBigNum prime, int checks);
+	double GetSieveDifficulty(CBigNum next, unsigned int clusterSize);
+	unsigned int GetPrimeBits(CBigNum prime, int checks);
+	unsigned int GetFractionalDifficulty(CBigNum composite);
+	std::vector<unsigned int> Eratosthenes(int nSieveSize);
+	bool DivisorCheck(CBigNum test);
+	unsigned long PrimeSieve(CBigNum BaseHash, unsigned int nDifficulty, unsigned int nHeight);
+	bool PrimeCheck(CBigNum test, int checks);
+	CBigNum FermatTest(CBigNum n, CBigNum a);
+	bool Miller_Rabin(CBigNum n, int checks);
+}
+
+namespace LLP
+{
+	class Outbound : public Connection
+	{
+		Service_t IO_SERVICE;
+		std::string IP, PORT;
+		
+	public:
+		Packet ReadNextPacket(int nTimeout = 10)
+		{
+			Packet NULL_PACKET;
+			while(!PacketComplete())
+			{
+				if(Timeout(nTimeout) || Errors())
+					return NULL_PACKET;
+				
+				ReadPacket();
+			
+				Sleep(1);
+			}
+			
+			return this->INCOMING;
+		}
+		
+	public:
+		/** Outgoing Client Connection Constructor **/
+		Outbound(std::string ip, std::string port) : IP(ip), PORT(port), Connection() { }
+		
+		bool Connect()
+		{
+			try
+			{
+				using boost::asio::ip::tcp;
+				
+				tcp::resolver 			  RESOLVER(IO_SERVICE);
+				tcp::resolver::query      QUERY   (tcp::v4(), IP.c_str(), PORT.c_str());
+				tcp::resolver::iterator   ADDRESS = RESOLVER.resolve(QUERY);
+				
+				this->SOCKET = Socket_t(new tcp::socket(IO_SERVICE));
+				this->SOCKET -> connect(*ADDRESS, this->ERROR_HANDLE);
+				
+				if(Errors())
+				{
+					this->Disconnect();
+					
+					printf("Failed to Connect to Mining LLP Server...\n");
+					return false;
+				}
+				
+				this->CONNECTED = true;
+				this->TIMER.Start();
+				
+				printf("Connected to %s:%s...\n", IP.c_str(), PORT.c_str());
+
+				return true;
+			}
+			catch(...){ }
+			
+			this->CONNECTED = false;
+			return false;
+		}
+		
+	};
+	
+	
+	class Miner : public Outbound
+	{
+	public:
+		Miner(std::string ip, std::string port) : Outbound(ip, port){}
+		
+		enum
+		{
+			/** DATA PACKETS **/
+			LOGIN            = 0,
+			BLOCK_DATA       = 1,
+			SUBMIT_SHARE     = 2,
+			ACCOUNT_BALANCE  = 3,
+			PENDING_PAYOUT   = 4,
+			
+					
+			/** REQUEST PACKETS **/
+			GET_BLOCK    = 129,
+			NEW_BLOCK    = 130,
+			GET_BALANCE  = 131,
+			GET_PAYOUT   = 132,
+			
+			
+			/** RESPONSE PACKETS **/
+			ACCEPT     = 200,
+			REJECT     = 201,
+			BLOCK      = 202,
+			STALE      = 203,
+			
+					
+			/** GENERIC **/
+			PING     = 253,
+			CLOSE    = 254
+		};
+		
+		
+		/** Current Newly Read Packet Access. **/
+		inline Packet NewPacket() { return this->INCOMING; }
+		
+		
+		/** Create a Packet with the Given Header. **/
+		inline Packet GetPacket(unsigned char HEADER)
+		{
+			Packet PACKET;
+			PACKET.HEADER = HEADER;
+			
+			return PACKET;
+		}
+		
+		
+		/** Get a new Block from the Pool Server. **/
+		inline void GetBlock()    { this -> WritePacket(GetPacket(GET_BLOCK));    }
+		
+		
+		/** Get your current balance in CSD that has not been included in a payout. **/
+		inline void GetBalance()  { this -> WritePacket(GetPacket(GET_BALANCE));  }
+		
+		
+		/** Get the Current Pending Payouts for the Next Coinbase Tx. **/
+		inline void GetPayouts()  { this -> WritePacket(GetPacket(GET_PAYOUT)); }
+		
+		
+		/** Ping the Pool Server to let it know Connection is Still Alive. **/
+		inline void Ping() { this -> WritePacket(GetPacket(PING)); }
+		
+		
+		/** Send your address for Pool Login. **/
+		inline void Login(std::string ADDRESS)
+		{
+			Packet PACKET = GetPacket(LOGIN);
+			PACKET.DATA   = string2bytes(ADDRESS);
+			PACKET.LENGTH = PACKET.DATA.size();
+			
+			printf("[MASTER] Logged in With Address: %s Bytes: %u\n", ADDRESS.c_str(), PACKET.LENGTH);
+			this->WritePacket(PACKET);
+		}
+		
+		
+		/** Submit a Share to the Pool Server. **/
+		inline void SubmitShare(uint1024 nPrimeOrigin, uint64 nNonce)
+		{
+			Packet PACKET = GetPacket(SUBMIT_SHARE);
+			PACKET.DATA = nPrimeOrigin.GetBytes();
+			std::vector<unsigned char> NONCE  = uint2bytes64(nNonce);
+			
+			PACKET.DATA.insert(PACKET.DATA.end(), NONCE.begin(), NONCE.end());
+			PACKET.LENGTH = 136;
+			
+			this->WritePacket(PACKET);
+		}
+	};
+}
+
+
+
+#endif

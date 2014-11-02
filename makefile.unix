@@ -1,0 +1,73 @@
+# Copyright (c) Videlicet[2014]++
+# Distributed under the MIT/X11 software license, see the accompanying
+# file license.txt or http://www.opensource.org/licenses/mit-license.php.
+
+DEFS=-DBOOST_SPIRIT_THREADSAFE -DBOOST_THREAD_USE_LIB
+
+DEFS += $(addprefix -I,$(CURDIR) $(CURDIR)/build $(CURDIR)/hash $(BOOST_INCLUDE_PATH) $(OPENSSL_INCLUDE_PATH))
+LIBS = $(addprefix -L,$(BOOST_LIB_PATH) $(BDB_LIB_PATH) $(OPENSSL_LIB_PATH))
+
+#For Boost 1.55 Builds Uncomment the Following
+#BOOST_LIB_PATH=/usr/local/lib
+#BOOST_INCLUDE_PATH=/usr/include/boost
+
+
+LIBS += \
+   -l boost_system$(BOOST_LIB_SUFFIX) \
+   -l boost_filesystem$(BOOST_LIB_SUFFIX) \
+   -l boost_program_options$(BOOST_LIB_SUFFIX) \
+   -l boost_thread$(BOOST_LIB_SUFFIX) \
+   -l crypto \
+   -l gmp
+
+DEBUGFLAGS=-g
+CXXFLAGS=-O2
+xCXXFLAGS=-pthread -static-libgcc -static-libstdc++ -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security \
+    $(DEBUGFLAGS) $(DEFS) $(CXXFLAGS)
+
+HEADERS = $(wildcard *.h)
+OBJS= \
+	build/skein.o \
+	build/skein_block.o \
+	build/KeccakDuplex.o \
+	build/KeccakSponge.o \
+	build/Keccak-compact64.o \
+	build/KeccakHash.o \
+	build/util.o \
+	build/prime.o \
+	build/miner.o
+
+
+all: coinshield_prime
+
+build/%.o: %.cpp
+	$(CXX) -c $(xCXXFLAGS) -MMD -o $@ $<
+	@cp $(@:%.o=%.d) $(@:%.o=%.P); \
+	  sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+	      -e '/^$$/ d' -e 's/$$/ :/' < $(@:%.o=%.d) >> $(@:%.o=%.P); \
+	  rm -f $(@:%.o=%.d)
+
+build/%.o: hash/%.c $(HEADERS)
+	$(CXX) -c $(xCXXFLAGS) -MMD -fpermissive -o $@ $<
+	@cp $(@:%.o=%.d) $(@:%.o=%.P); \
+	  sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+	      -e '/^$$/ d' -e 's/$$/ :/' < $(@:%.o=%.d) >> $(@:%.o=%.P); \
+	  rm -f $(@:%.o=%.d)
+
+build/%.o: hash/%.cpp
+	$(CXX) -c $(xCXXFLAGS) -MMD -o $@ $<
+	@cp $(@:%.o=%.d) $(@:%.o=%.P); \
+	  sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+	      -e '/^$$/ d' -e 's/$$/ :/' < $(@:%.o=%.d) >> $(@:%.o=%.P); \
+	  rm -f $(@:%.o=%.d)
+
+
+coinshield_prime: $(OBJS:obj/%=build/%)
+	$(CXX) $(xCXXFLAGS) -rdynamic -o $@ $^ $(LDFLAGS) $(LIBS)
+
+
+clean:
+	-rm -f coinshield_prime
+	-rm -f build/*.o
+
+FORCE:

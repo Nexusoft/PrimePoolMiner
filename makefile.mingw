@@ -1,0 +1,59 @@
+# Copyright (c) Videlicet[2014]++
+# Distributed under the MIT/X11 software license, see the accompanying
+# file license.txt or http://www.opensource.org/licenses/mit-license.php.
+
+
+INCLUDEPATHS= \
+ -I"$(CURDIR)" \
+ -I"$(CURDIR)\hash" \
+ -I"C:\Deps\boost_1_55_0" \
+ -I"C:\Deps\openssl-1.0.1h\include" \
+ -I"C:\Deps\GMP\include"
+
+LIBPATHS= \
+ -L"C:\Deps\boost_1_55_0\stage\lib" \
+ -L"C:\Deps\openssl-1.0.1h" \
+ -L"C:\Deps\GMP\lib" 
+
+LIBS= \
+ -l boost_system-mgw49-mt-s-1_55 \
+ -l boost_filesystem-mgw49-mt-s-1_55 \
+ -l boost_program_options-mgw49-mt-s-1_55 \
+ -l boost_thread-mgw49-mt-s-1_55 \
+ -l ssl \
+ -l crypto \
+ -l gmpxx \
+ -l gmp
+
+DEFS=-DWIN32 -D_WINDOWS -DBOOST_THREAD_USE_LIB -DBOOST_SPIRIT_THREADSAFE
+DEBUGFLAGS=-g
+CFLAGS=-static -static-libgcc -static-libstdc++ -O2 -w -Wno-invalid-offsetof -Wformat $(DEBUGFLAGS) $(DEFS) $(INCLUDEPATHS)
+LIBS +=-l kernel32 -l user32 -l gdi32 -l comdlg32 -l winspool -l winmm -l shell32 -l comctl32 -l ole32 -l oleaut32 -l uuid -l rpcrt4 -l advapi32 -l ws2_32 -l shlwapi
+
+HEADERS = $(wildcard *.h)
+
+OBJS= \
+	build/skein.o \
+	build/skein_block.o \
+	build/KeccakDuplex.o \
+	build/KeccakSponge.o \
+	build/Keccak-compact64.o \
+	build/KeccakHash.o \
+	build/prime.o \
+	build/util.o \
+	build/miner.o 
+
+
+all: miner.exe
+
+build/%.o: %.cpp $(HEADERS)
+	g++ -c $(CFLAGS) -o $@ $<
+	
+build/%.o: hash/%.c $(HEADERS)
+	g++ -c -fpermissive $(CFLAGS) -o $@ $<
+	
+build/%.o: hash/%.cpp $(HEADERS)
+	g++ -c $(CFLAGS) -o $@ $<
+
+miner.exe: $(OBJS:obj/%=obj/%)
+	g++ $(CFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS)
