@@ -176,7 +176,7 @@ namespace Core
 	extern unsigned int nPrimeLimit;
 	extern unsigned int nPrimorialEndPrime;
 
-	extern unsigned long octuplet_origins[];
+	extern uint64 octuplet_origins[];
 	
 	void InitializePrimes();
 	unsigned int SetBits(double nDiff);
