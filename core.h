@@ -2,34 +2,7 @@
 #define COINSHIELD_LLP_CORE_H
 
 #include "types.h"
-
-namespace Core
-{
-	extern unsigned int *primes;
-	extern unsigned int *inverses;
-
-	extern unsigned int nBitArray_Size;
-	extern mpz_t  zPrimorial;
-
-	extern unsigned int prime_limit;
-	extern unsigned int nPrimeLimit;
-	extern unsigned int nPrimorialEndPrime;
-
-	extern unsigned long octuplet_origins[];
-	
-	void InitializePrimes();
-	unsigned int SetBits(double nDiff);
-	double GetPrimeDifficulty(CBigNum prime, int checks);
-	double GetSieveDifficulty(CBigNum next, unsigned int clusterSize);
-	unsigned int GetPrimeBits(CBigNum prime, int checks);
-	unsigned int GetFractionalDifficulty(CBigNum composite);
-	std::vector<unsigned int> Eratosthenes(int nSieveSize);
-	bool DivisorCheck(CBigNum test);
-	unsigned long PrimeSieve(CBigNum BaseHash, unsigned int nDifficulty, unsigned int nHeight);
-	bool PrimeCheck(CBigNum test, int checks);
-	CBigNum FermatTest(CBigNum n, CBigNum a);
-	bool Miller_Rabin(CBigNum n, int checks);
-}
+#include <queue>
 
 namespace LLP
 {
@@ -185,6 +158,89 @@ namespace LLP
 			
 			this->WritePacket(PACKET);
 		}
+	};
+	
+}
+
+namespace Core
+{
+	class ServerConnection;
+	
+	extern unsigned int *primes;
+	extern unsigned int *inverses;
+
+	extern unsigned int nBitArray_Size;
+	extern mpz_t  zPrimorial;
+
+	extern unsigned int prime_limit;
+	extern unsigned int nPrimeLimit;
+	extern unsigned int nPrimorialEndPrime;
+
+	extern unsigned long octuplet_origins[];
+	
+	void InitializePrimes();
+	unsigned int SetBits(double nDiff);
+	double GetPrimeDifficulty(CBigNum prime, int checks);
+	double GetSieveDifficulty(CBigNum next, unsigned int clusterSize);
+	unsigned int GetPrimeBits(CBigNum prime, int checks);
+	unsigned int GetFractionalDifficulty(CBigNum composite);
+	std::vector<unsigned int> Eratosthenes(int nSieveSize);
+	bool DivisorCheck(CBigNum test);
+	unsigned long PrimeSieve(CBigNum BaseHash, unsigned int nDifficulty, unsigned int nHeight);
+	bool PrimeCheck(CBigNum test, int checks);
+	CBigNum FermatTest(CBigNum n, CBigNum a);
+	bool Miller_Rabin(CBigNum n, int checks);
+	
+	
+	
+	/** Class to hold the basic data a Miner will use to build a Block.
+		Used to allow one Connection for any amount of threads. **/
+	class MinerThread
+	{
+	public:
+		ServerConnection* cServerConnection;
+		
+		uint1024 hashPrimeOrigin;
+		uint64 nNonce;
+		unsigned int nMinimumShare, nDifficulty, nHeight;
+		bool fNewBlock, fBlockWaiting;
+		LLP::Thread_t THREAD;
+		LLP::Timer IDLE_TIME;
+		boost::mutex MUTEX;
+		
+		MinerThread(ServerConnection* cConnection) : cServerConnection(cConnection), fNewBlock(true), fBlockWaiting(false), THREAD(boost::bind(&MinerThread::PrimeMiner, this)) { }
+
+		void PrimeMiner();
+	};
+	
+		/** Class to handle all the Connections via Mining LLP.
+		Independent of Mining Threads for Higher Efficiency. **/
+	class ServerConnection
+	{
+	public:
+		LLP::Miner* CLIENT;
+		int nThreads, nTimeout;
+		std::vector<MinerThread*> THREADS;
+		LLP::Thread_t THREAD;
+		LLP::Timer    TIMER;
+		std::string   IP, PORT;
+		
+		boost::mutex    SUBMIT_MUTEX;
+
+		std::queue<std::pair<uint1024, uint64> > SUBMIT_QUEUE;
+		std::queue<std::pair<uint1024, uint64> > RESPONSE_QUEUE;
+		
+		ServerConnection(std::string ip, std::string port, int nMaxThreads, int nMaxTimeout) : IP(ip), PORT(port), TIMER(), nThreads(nMaxThreads), nTimeout(nMaxTimeout), THREAD(boost::bind(&ServerConnection::ServerThread, this))
+		{
+			for(int nIndex = 0; nIndex < nThreads; nIndex++)
+				THREADS.push_back(new MinerThread(this));
+		}
+		
+		/** Reset the block on each of the Threads. **/
+		void ResetThreads();
+		void SubmitShare(uint1024 hashPrimeOrigin, uint64 nNonce);
+		void ServerThread();
+
 	};
 }
 
