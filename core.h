@@ -201,8 +201,7 @@ namespace Core
 		ServerConnection* cServerConnection;
 		
 		uint1024 hashPrimeOrigin;
-		uint64 nNonce;
-		unsigned int nMinimumShare, nDifficulty, nHeight;
+		unsigned int nMinimumShare;
 		bool fNewBlock, fBlockWaiting;
 		LLP::Thread_t THREAD;
 		LLP::Timer IDLE_TIME;

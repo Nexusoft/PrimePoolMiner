@@ -5,7 +5,7 @@
 #include "hash/templates.h"
 #include "bignum.h"
 
-#ifdef WIN32
+#if defined _WIN32 || defined WIN32
 	typedef int pid_t;
 #else
 	#include <sys/types.h>

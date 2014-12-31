@@ -23,15 +23,18 @@ namespace LLP
 	{
 	private:
 		boost::posix_time::ptime TIMER_START, TIMER_END;
+		boost::mutex             TIMER_MUTEX;
 		bool fStopped = false;
 	
 	public:
-		inline void Start() { TIMER_START = boost::posix_time::microsec_clock::local_time(); fStopped = false; }
+		inline void Start() { LOCK(TIMER_MUTEX); TIMER_START = boost::posix_time::microsec_clock::local_time(); fStopped = false; }
 		inline void Reset() { Start(); }
-		inline void Stop()  { TIMER_END = boost::posix_time::microsec_clock::local_time(); fStopped = true; }
+		inline void Stop()  { LOCK(TIMER_MUTEX); TIMER_END = boost::posix_time::microsec_clock::local_time(); fStopped = true; }
 		
 		unsigned int Elapsed()
 		{
+			LOCK(TIMER_MUTEX);
+			
 			if(fStopped)
 				return (TIMER_END - TIMER_START).total_seconds();
 				
@@ -40,6 +43,8 @@ namespace LLP
 		
 		unsigned int ElapsedMilliseconds()
 		{
+			LOCK(TIMER_MUTEX);
+			
 			if(fStopped)
 				return (TIMER_END - TIMER_START).total_milliseconds();
 				

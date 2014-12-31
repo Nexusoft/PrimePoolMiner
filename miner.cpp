@@ -2,10 +2,15 @@
 
 unsigned int nBestHeight = 0;
 unsigned int nStartTimer = 0;
-unsigned int nPrimes = 0;
+uint64 nWeight = 0, nElements = 0, nPrimes = 0;
+double nAverage = 0;
+unsigned int nLargestShare = 0;
+unsigned int nDifficulty   = 0;
 
 std::string ADDRESS;
 uint64 nCurrentPayout = 0, nAccountBalance = 0;
+
+static LLP::Timer cPrimeTimer;
 
 namespace Core
 {
@@ -13,8 +18,6 @@ namespace Core
 	/** Main Miner Thread. Bound to the class with boost. Might take some rearranging to get working with OpenCL. **/
 	void MinerThread::PrimeMiner()
 	{
-		IDLE_TIME.Start();
-		
 		loop
 		{
 			try
@@ -22,14 +25,6 @@ namespace Core
 				/** Keep thread at idle CPU usage if waiting to submit or recieve block. **/
 				Sleep(1);
 				
-				/** If the Thread has waited more than 5 seconds for a block, ask again. **/
-				if(IDLE_TIME.ElapsedMilliseconds() > 5000 && fBlockWaiting)
-				{
-					fNewBlock = true;
-					IDLE_TIME.Reset();
-					
-					printf("[MINER] Idle Limit Reached. Asking for New Block.\n");
-				}
 				
 				/** Assure that this thread stays idle when waiting for new block, or share submission. **/
 				if(fNewBlock || fBlockWaiting)
@@ -37,13 +32,8 @@ namespace Core
 				
 				
 				/** Lock the Thread at this Mutex when Changing Block Pointer. **/
-				MUTEX.lock();
 				CBigNum BaseHash(hashPrimeOrigin);
-				nNonce = 0;
-				nHeight = nBestHeight;
-				MUTEX.unlock();
-				
-				mpz_t zPrimeOrigin, zPrimeOriginOffset, zFirstSieveElement, zPrimorialMod, zTempVar, zResidue, zTwo, zN, zNewTemp;
+				mpz_t zPrimeOrigin, zPrimeOriginOffset, zFirstSieveElement, zPrimorialMod, zTempVar, zResidue, zTwo, zN, zOctuplet;
 						
 				unsigned int i = 0;
 				unsigned int j = 0;
@@ -53,13 +43,19 @@ namespace Core
 				uint64 nStart = 0;
 				uint64 nStop = 0;
 				unsigned int nLastOffset = 0;
-
+				
+				#if defined _WIN32 || defined WIN32
+					uint64 nNonce = 0;
+				#else
+					unsigned long nNonce = 0;
+				#endif
+				
 				long nElapsedTime = 0;
 				long nStartTime = 0;
 				mpz_init(zPrimeOriginOffset);
 				mpz_init(zFirstSieveElement);
 				mpz_init(zPrimorialMod);
-				mpz_init(zNewTemp);
+				mpz_init(zOctuplet);
 				mpz_init(zTempVar);
 				mpz_init(zPrimeOrigin);
 				mpz_init(zResidue);
@@ -67,8 +63,10 @@ namespace Core
 				mpz_init(zN);
 
 				bignum2mpz(&BaseHash, zPrimeOrigin);
-				nSize = mpz_sizeinbase(zPrimeOrigin,2);
+				
+				nSize = mpz_sizeinbase(zPrimeOrigin, 2);
 				unsigned char* bit_array_sieve = (unsigned char*)malloc((nBitArray_Size)/8);
+				
 				for(j=0; j<256 && !fNewBlock && !fBlockWaiting; j++)
 				{
 					memset(bit_array_sieve, 0x00, (nBitArray_Size)/8);
@@ -77,12 +75,19 @@ namespace Core
 					mpz_sub(zPrimorialMod, zPrimorial, zPrimorialMod);
 
 					mpz_mod(zPrimorialMod, zPrimorialMod, zPrimorial);
-					mpz_add_ui(zPrimorialMod, zPrimorialMod, octuplet_origins[j]);
-					mpz_add(zTempVar, zPrimeOrigin, zPrimorialMod);
+					
+					#if defined _WIN32 || defined WIN32
+						mpz_import(zOctuplet, 1, 1, sizeof(octuplet_origins[j]), 0, 0, &octuplet_origins[j]);
+						mpz_add(zPrimorialMod, zPrimorialMod, zOctuplet);
+					#else
+						mpz_add_ui(zPrimorialMod, zPrimorialMod, octuplet_origins[j]);
+					#endif
 
+					
+					mpz_add(zTempVar, zPrimeOrigin, zPrimorialMod);
 					mpz_set(zFirstSieveElement, zTempVar);
 
-					for(unsigned int i=nPrimorialEndPrime; i<nPrimeLimit && !fNewBlock && !fBlockWaiting && nHeight == nBestHeight; i++)
+					for(unsigned int i=nPrimorialEndPrime; i<nPrimeLimit && !fNewBlock && !fBlockWaiting; i++)
 					{
 						unsigned long  p = primes[i];
 						unsigned int inv = inverses[i];
@@ -108,7 +113,6 @@ namespace Core
 							index += p;
 						}
 
-						
 						remainder = base_remainder + 6;
 						if (p<remainder)
 							remainder -= p;
@@ -123,21 +127,34 @@ namespace Core
 						remainder = base_remainder + 8;
 						if (p<remainder)
 							remainder -= p;
-						r = (p-remainder)*inv;
+						r = (p - remainder) * inv;
 						index = r % p;
 						while(index < nBitArray_Size)
 						{
-							//if( !(bit_array_sieve[(i)>>3] & (1<<((i)&7))) )
 								bit_array_sieve[(index)>>3] |= (1<<((index)&7));
+							index += p;
+						}
+						
+						remainder = base_remainder + 12;
+						if (p<remainder)
+							remainder -= p;
+						r = (p - remainder) * inv;
+						index = r % p;
+						while(index < nBitArray_Size)
+						{
+							bit_array_sieve[(index)>>3] |= (1<<((index)&7));
 							index += p;
 						}
 
 					}
 
-					for(i=0; i<nBitArray_Size && !fNewBlock && !fBlockWaiting && nHeight == nBestHeight; i++)
+					
+					for(i=0; i<nBitArray_Size && !fNewBlock && !fBlockWaiting; i++)
 					{
+						
 						if( bit_array_sieve[(i)>>3] & (1<<((i)&7)) )
 							continue;
+						
 							
 						// p1
 						mpz_mul_ui(zTempVar, zPrimorial, i);
@@ -153,7 +170,9 @@ namespace Core
 						nStop = 2;
 						nPrimeCount = 0;
 						nLastOffset = 0;
+						cPrimeTimer.Reset();
 						nPrimes++;
+
 
 						for(nStart; nStart <= nStop + 12; nStart += 2)
 						{
@@ -161,34 +180,48 @@ namespace Core
 							mpz_powm(zResidue, zTwo, zN, zTempVar);
 							if (mpz_cmp_ui(zResidue, 1) == 0)
 							{
-
 								nStop = nStart;
 								nPrimeCount++;
 								nPrimes++;
+								
+								//nPrimesForSieve++;
 							}
 
 							mpz_add_ui(zTempVar, zTempVar, 2);
-							nLastOffset+=2;
+							
+							nLastOffset += 2;
 						}
 
 						if(nPrimeCount >= 3)
-						{	
+						{
 							mpz_sub(zTempVar, zPrimeOriginOffset, zPrimeOrigin);
-							nNonce = mpz2uint64(zTempVar);
+							
+							#if defined _WIN32 || defined WIN32
+								nNonce = mpz2uint64(zTempVar);
+							#else
+								nNonce = mpz_get_ui(zTempVar);
+							#endif
+						
 							
 							unsigned int nSieveBits = SetBits(GetSieveDifficulty(BaseHash + nNonce + nLastOffset, nPrimeCount));
+							if(nSieveBits > nLargestShare)
+								nLargestShare = nSieveBits;
+							
 							if(nSieveBits < nMinimumShare)
 								continue;
 							
-							double nDiff = GetPrimeBits((BaseHash + nNonce), 1);
+							unsigned int nDiff = GetPrimeBits((BaseHash + nNonce), 1);
 							if(nDiff >= nMinimumShare)
+							{
+								nWeight += nDiff * 50;
 								cServerConnection->SubmitShare(BaseHash.getuint1024(), nNonce);
-							
+							}
 						}
 					}
 				}
 
 				mpz_clear(zPrimeOrigin);
+				mpz_clear(zOctuplet);
 				mpz_clear(zPrimeOriginOffset);
 				mpz_clear(zFirstSieveElement);
 				mpz_clear(zResidue);
@@ -199,7 +232,6 @@ namespace Core
 
 				free(bit_array_sieve);
 				
-				IDLE_TIME.Reset();
 				fNewBlock = true;
 			}
 			catch(std::exception& e){ printf("ERROR: %s\n", e.what()); }
@@ -280,16 +312,19 @@ namespace Core
 				/** Rudimentary Meter **/
 				if(TIMER.Elapsed() > 10)
 				{
+				
+					nElements++;
+					
 					unsigned int SecondsElapsed = (unsigned int)time(0) - nStartTimer;
 					unsigned int nElapsed = TIMER.Elapsed();
-					double PPS = (double) nPrimes / nElapsed;
-					nPrimes = 0;
 					
-					printf("[METERS] %f PPS | Height = %u | Balance: %f CSD | Payout: %f CSD | %02d:%02d:%02d\n", PPS, nBestHeight, nAccountBalance / 1000000.0, nCurrentPayout / 1000000.0, (SecondsElapsed/3600)%60, (SecondsElapsed/60)%60, (SecondsElapsed)%60);
+					double PPS = (double) nPrimes / (nElapsed * nElements);
+					double WPS = nWeight / (nElapsed * nElements * 10000000);
+					
+					printf("[METERS] %f PPS | %f WPS | Largest Share %f | Difficulty %f | Height = %u | Balance: %f CSD | Payout: %f CSD | %02d:%02d:%02d\n", PPS, WPS, nLargestShare / 10000000.0, nDifficulty / 10000000.0, nBestHeight, nAccountBalance / 1000000.0, nCurrentPayout / 1000000.0, (SecondsElapsed/3600)%60, (SecondsElapsed/60)%60, (SecondsElapsed)%60);
 						
 					CLIENT->Ping();
 					TIMER.Reset();
-						
 				}
 					
 					
@@ -316,7 +351,7 @@ namespace Core
 						THREADS[nIndex]->fBlockWaiting = true;
 						THREADS[nIndex]->fNewBlock = false;
 						
-						printf("[MASTER] Asking For New Block for Thread %u\n", nIndex);
+						//printf("[MASTER] Asking For New Block for Thread %u\n", nIndex);
 					}
 				}
 					
@@ -338,7 +373,8 @@ namespace Core
 					std::pair<uint1024, uint64> pResponse = RESPONSE_QUEUE.front();
 					RESPONSE_QUEUE.pop();
 					
-					printf("[MASTER] Share Found | Difficulty %f | Hash %s  --> [Accepted]\n", GetPrimeDifficulty(CBigNum(pResponse.first + pResponse.second), 1), pResponse.first.ToString().substr(0, 20).c_str());
+					double nDiff = GetPrimeDifficulty(CBigNum(pResponse.first + pResponse.second), 1);
+					printf("[MASTER] Share Found | Difficulty %f | Hash %s  --> [Accepted]\n", nDiff, pResponse.first.ToString().substr(0, 20).c_str());
 				}
 					
 					
@@ -363,7 +399,7 @@ namespace Core
 					std::pair<uint1024, uint64> pResponse = RESPONSE_QUEUE.front();
 					RESPONSE_QUEUE.pop();
 					
-					printf("[MASTER] Block Found | Difficulty %f | Hash %s  --> [New Block]\n", GetPrimeDifficulty(CBigNum(pResponse.first + pResponse.second), 1), pResponse.first.ToString().substr(0, 20).c_str());
+					printf("\n******************************************************\n\nBlock Accepted | Difficulty %f | Hash %s\n\n******************************************************\n\n", GetPrimeDifficulty(CBigNum(pResponse.first + pResponse.second), 1), pResponse.first.ToString().c_str());
 				}
 					
 				/** Output if a Share is Stale **/
@@ -382,8 +418,7 @@ namespace Core
 				/** Reset the Threads if a New Block came in. **/
 				else if(PACKET.HEADER == CLIENT->NEW_BLOCK)
 				{
-					if(nBestHeight > 0)
-						printf("[MASTER] Coinshield Network: New Block %u.\n", nBestHeight + 1);
+					printf("[MASTER] Coinshield Network: New Block\n");
 							
 					ResetThreads();
 					
@@ -407,11 +442,11 @@ namespace Core
 					{
 						if(THREADS[nIndex]->fBlockWaiting)
 						{
-							THREADS[nIndex]->MUTEX.lock();
+							LOCK(THREADS[nIndex]->MUTEX);
+							
 							THREADS[nIndex]->hashPrimeOrigin.SetBytes(std::vector<unsigned char>  (PACKET.DATA.begin(),   PACKET.DATA.end() - 12));
 							THREADS[nIndex]->nMinimumShare = bytes2uint(std::vector<unsigned char>(PACKET.DATA.end() - 12, PACKET.DATA.end() - 8));
-							THREADS[nIndex]->nDifficulty   = bytes2uint(std::vector<unsigned char>(PACKET.DATA.end() - 8,  PACKET.DATA.end() - 4));
-							THREADS[nIndex]->MUTEX.unlock();
+		
 								
 							/** Check that the Block Received is not Obsolete, if so request a new one. **/
 							unsigned int nHeight = bytes2uint(std::vector<unsigned char>(PACKET.DATA.end() - 4, PACKET.DATA.end()));
@@ -422,10 +457,9 @@ namespace Core
 									
 								break;
 							}
-								
-							/** Set the Best Height for the Block. **/
-							if(nHeight > nBestHeight)
-								nBestHeight = nHeight;
+							
+							nDifficulty   = bytes2uint(std::vector<unsigned char>(PACKET.DATA.end() - 8,  PACKET.DATA.end() - 4));
+							nBestHeight   = nHeight;
 								
 							printf("[MASTER] Block %s Height = %u Received on Thread %u\n", THREADS[nIndex]->hashPrimeOrigin.ToString().substr(0, 20).c_str(), nHeight, nIndex);
 							THREADS[nIndex]->fBlockWaiting = false;

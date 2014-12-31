@@ -22,7 +22,7 @@ LIBS += \
 
 DEBUGFLAGS=-g
 CXXFLAGS=-O2
-xCXXFLAGS=-pthread -static-libgcc -static-libstdc++ -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security \
+xCXXFLAGS=-pthread -m64 -static-libgcc -static-libstdc++ -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security \
     $(DEBUGFLAGS) $(DEFS) $(CXXFLAGS)
 
 HEADERS = $(wildcard *.h)
