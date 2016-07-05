@@ -44,7 +44,7 @@ OBJS= \
 	build/miner.o 
 
 
-all: miner.exe
+all: nexus_cpuminer.exe
 
 build/%.o: %.cpp $(HEADERS)
 	g++ -c $(CFLAGS) -o $@ $<
@@ -55,5 +55,5 @@ build/%.o: hash/%.c $(HEADERS)
 build/%.o: hash/%.cpp $(HEADERS)
 	g++ -c $(CFLAGS) -o $@ $<
 
-miner.exe: $(OBJS:obj/%=obj/%)
+nexus_cpuminer.exe: $(OBJS:obj/%=obj/%)
 	g++ $(CFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS)
