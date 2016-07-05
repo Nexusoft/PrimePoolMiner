@@ -27,10 +27,14 @@ namespace Core
 				
 				
 				/** Assure that this thread stays idle when waiting for new block, or share submission. **/
-				if(fNewBlock || fBlockWaiting)
+				if(fNewBlock || fBlockWaiting || !fNewBlockRestart)
 					continue;
 				
-				
+                {
+                    LOCK(MUTEX);
+                    fNewBlockRestart = false;
+                }
+                
 				/** Lock the Thread at this Mutex when Changing Block Pointer. **/
 				CBigNum BaseHash(hashPrimeOrigin);
 				mpz_t zPrimeOrigin, zPrimeOriginOffset, zFirstSieveElement, zPrimorialMod, zTempVar, zResidue, zTwo, zN, zOctuplet;
@@ -65,9 +69,9 @@ namespace Core
 				bignum2mpz(&BaseHash, zPrimeOrigin);
 				
 				nSize = mpz_sizeinbase(zPrimeOrigin, 2);
-				unsigned char* bit_array_sieve = (unsigned char*)malloc((nBitArray_Size)/8);
+				unsigned char bit_array_sieve[nBitArray_Size/8];
 				
-				for(j=0; j<256 && !fNewBlock && !fBlockWaiting; j++)
+				for(j=0; j<256 && !fNewBlockRestart; j++)
 				{
 					memset(bit_array_sieve, 0x00, (nBitArray_Size)/8);
 
@@ -87,7 +91,7 @@ namespace Core
 					mpz_add(zTempVar, zPrimeOrigin, zPrimorialMod);
 					mpz_set(zFirstSieveElement, zTempVar);
 
-					for(unsigned int i=nPrimorialEndPrime; i<nPrimeLimit && !fNewBlock && !fBlockWaiting; i++)
+					for(unsigned int i=nPrimorialEndPrime; i<nPrimeLimit && !fNewBlockRestart; i++)
 					{
 						unsigned long  p = primes[i];
 						unsigned int inv = inverses[i];
@@ -124,6 +128,7 @@ namespace Core
 							index += p;
 						}
 
+
 						remainder = base_remainder + 8;
 						if (p<remainder)
 							remainder -= p;
@@ -145,17 +150,14 @@ namespace Core
 							bit_array_sieve[(index)>>3] |= (1<<((index)&7));
 							index += p;
 						}
-
 					}
 
 					
-					for(i=0; i<nBitArray_Size && !fNewBlock && !fBlockWaiting; i++)
+					for(i=0; i<nBitArray_Size && !fNewBlockRestart; i++)
 					{
-						
 						if( bit_array_sieve[(i)>>3] & (1<<((i)&7)) )
 							continue;
-						
-							
+                        	
 						// p1
 						mpz_mul_ui(zTempVar, zPrimorial, i);
 						mpz_add(zTempVar, zFirstSieveElement, zTempVar);
@@ -166,15 +168,15 @@ namespace Core
 						if (mpz_cmp_ui(zResidue, 1) != 0)
 							continue;
 
-						nStart = 0;
+						nStart = 2;
 						nStop = 2;
-						nPrimeCount = 0;
-						nLastOffset = 0;
+						nPrimeCount = 1;
+						nLastOffset = 2;
 						cPrimeTimer.Reset();
-						nPrimes++;
+						nPrimes+=2;
 
-
-						for(nStart; nStart <= nStop + 12; nStart += 2)
+                         mpz_add_ui(zTempVar, zTempVar, 2);
+						for(nStart; nStart <= nStop + 12 && !fNewBlockRestart; nStart += 2)
 						{
 							mpz_sub_ui(zN, zTempVar, 1);
 							mpz_powm(zResidue, zTwo, zN, zTempVar);
@@ -183,7 +185,6 @@ namespace Core
 								nStop = nStart;
 								nPrimeCount++;
 								nPrimes++;
-								
 								//nPrimesForSieve++;
 							}
 
@@ -192,8 +193,8 @@ namespace Core
 							nLastOffset += 2;
 						}
 
-						if(nPrimeCount >= 3)
-						{
+						if(nPrimeCount >= 4 && !fNewBlockRestart)
+						{   
 							mpz_sub(zTempVar, zPrimeOriginOffset, zPrimeOrigin);
 							
 							#if defined _WIN32 || defined WIN32
@@ -201,12 +202,11 @@ namespace Core
 							#else
 								nNonce = mpz_get_ui(zTempVar);
 							#endif
-						
-							
+													
 							unsigned int nSieveBits = SetBits(GetSieveDifficulty(BaseHash + nNonce + nLastOffset, nPrimeCount));
 							if(nSieveBits > nLargestShare)
 								nLargestShare = nSieveBits;
-							
+
 							if(nSieveBits < nMinimumShare)
 								continue;
 							
@@ -230,9 +230,8 @@ namespace Core
 				mpz_clear(zPrimorialMod);
 				mpz_clear(zTempVar);
 
-				free(bit_array_sieve);
-				
-				fNewBlock = true;
+                if( !fNewBlockRestart && !fBlockWaiting )
+				    fNewBlock = true;
 			}
 			catch(std::exception& e){ printf("ERROR: %s\n", e.what()); }
 		}
@@ -255,7 +254,11 @@ namespace Core
 		
 		/** Reset each individual flag to tell threads to stop mining. **/
 		for(int nIndex = 0; nIndex < THREADS.size(); nIndex++)
+        {
+            LOCK(THREADS[nIndex]->MUTEX);
 			THREADS[nIndex]->fNewBlock      = true;		
+            THREADS[nIndex]->fNewBlockRestart = true;	
+        }
 	}
 		
 	/** Add a Block to the Submit Queue. **/
@@ -320,8 +323,8 @@ namespace Core
 					
 					double PPS = (double) nPrimes / (nElapsed * nElements);
 					double WPS = nWeight / (nElapsed * nElements * 10000000);
-					
-					printf("[METERS] %f PPS | %f WPS | Largest Share %f | Difficulty %f | Height = %u | Balance: %f CSD | Payout: %f CSD | %02d:%02d:%02d\n", PPS, WPS, nLargestShare / 10000000.0, nDifficulty / 10000000.0, nBestHeight, nAccountBalance / 1000000.0, nCurrentPayout / 1000000.0, (SecondsElapsed/3600)%60, (SecondsElapsed/60)%60, (SecondsElapsed)%60);
+
+					printf("[METERS] %f PPS | %f WPS | Largest Share %f | Difficulty %f | Height = %u | Balance: %f NXS | Payout: %f NXS | %02d:%02d:%02d\n", PPS, WPS, nLargestShare / 10000000.0, nDifficulty / 10000000.0, nBestHeight, nAccountBalance / 1000000.0, nCurrentPayout / 1000000.0, (SecondsElapsed/3600)%60, (SecondsElapsed/60)%60, (SecondsElapsed)%60);
 						
 					CLIENT->Ping();
 					TIMER.Reset();
@@ -350,6 +353,7 @@ namespace Core
 						CLIENT->GetBlock();
 						THREADS[nIndex]->fBlockWaiting = true;
 						THREADS[nIndex]->fNewBlock = false;
+                        THREADS[nIndex]->fNewBlockRestart = true;
 						
 						//printf("[MASTER] Asking For New Block for Thread %u\n", nIndex);
 					}
@@ -418,7 +422,7 @@ namespace Core
 				/** Reset the Threads if a New Block came in. **/
 				else if(PACKET.HEADER == CLIENT->NEW_BLOCK)
 				{
-					printf("[MASTER] Coinshield Network: New Block\n");
+					printf("[MASTER] NXS Network: New Block\n");
 							
 					ResetThreads();
 					
@@ -513,6 +517,7 @@ int main(int argc, char *argv[])
 	nStartTimer = (unsigned int)time(0);
 	
 	Core::ServerConnection MINERS(IP, PORT, nThreads, nTimeout);
+	
 	loop { Sleep(10); }
 	
 	return 0;

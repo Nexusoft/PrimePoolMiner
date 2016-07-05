@@ -38,7 +38,7 @@ OBJS= \
 	build/miner.o
 
 
-all: coinshield_prime
+all: nexus_cpuminer
 
 build/%.o: %.cpp
 	$(CXX) -c $(xCXXFLAGS) -MMD -o $@ $<
@@ -62,12 +62,12 @@ build/%.o: hash/%.cpp
 	  rm -f $(@:%.o=%.d)
 
 
-coinshield_prime: $(OBJS:obj/%=build/%)
+nexus_cpuminer: $(OBJS:obj/%=build/%)
 	$(CXX) $(xCXXFLAGS) -rdynamic -o $@ $^ $(LDFLAGS) $(LIBS)
 
 
 clean:
-	-rm -f coinshield_prime
+	-rm -f nexus_cpuminer
 	-rm -f build/*.o
 
 FORCE:

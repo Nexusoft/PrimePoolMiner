@@ -122,7 +122,7 @@ namespace LLP
 		inline void GetBlock()    { this -> WritePacket(GetPacket(GET_BLOCK));    }
 		
 		
-		/** Get your current balance in CSD that has not been included in a payout. **/
+		/** Get your current balance in NXS that has not been included in a payout. **/
 		inline void GetBalance()  { this -> WritePacket(GetPacket(GET_BALANCE));  }
 		
 		
@@ -202,12 +202,12 @@ namespace Core
 		
 		uint1024 hashPrimeOrigin;
 		unsigned int nMinimumShare;
-		bool fNewBlock, fBlockWaiting;
+		bool fNewBlock, fBlockWaiting, fNewBlockRestart;
 		LLP::Thread_t THREAD;
 		LLP::Timer IDLE_TIME;
 		boost::mutex MUTEX;
 		
-		MinerThread(ServerConnection* cConnection) : cServerConnection(cConnection), fNewBlock(true), fBlockWaiting(false), THREAD(boost::bind(&MinerThread::PrimeMiner, this)) { }
+		MinerThread(ServerConnection* cConnection) : cServerConnection(cConnection), fNewBlock(true), fBlockWaiting(false), fNewBlockRestart(true), THREAD(boost::bind(&MinerThread::PrimeMiner, this)) { }
 
 		void PrimeMiner();
 	};
