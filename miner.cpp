@@ -1,5 +1,7 @@
 #include "core.h"
 
+#pragma GCC optimize ("unroll-loops")
+
 unsigned int nBestHeight = 0;
 unsigned int nStartTimer = 0;
 uint64 nWeight = 0, nElements = 0, nPrimes = 0;
