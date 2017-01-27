@@ -69,7 +69,7 @@ namespace Core
 				bignum2mpz(&BaseHash, zPrimeOrigin);
 				
 				nSize = mpz_sizeinbase(zPrimeOrigin, 2);
-				unsigned char bit_array_sieve[nBitArray_Size/8];
+				unsigned char* bit_array_sieve = (unsigned char*)malloc((nBitArray_Size)/8);
 				
 				for(j=0; j<256 && !fNewBlockRestart; j++)
 				{
@@ -229,6 +229,8 @@ namespace Core
 				mpz_clear(zN);
 				mpz_clear(zPrimorialMod);
 				mpz_clear(zTempVar);
+
+				free(bit_array_sieve);
 
                 if( !fNewBlockRestart && !fBlockWaiting )
 				    fNewBlock = true;

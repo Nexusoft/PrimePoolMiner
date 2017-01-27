@@ -20,10 +20,10 @@ LIBS += \
    -l crypto \
    -l gmp
 
-DEBUGFLAGS=-g
-CXXFLAGS=-O2
-xCXXFLAGS=-pthread -m64 -static-libgcc -static-libstdc++ -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security \
-    $(DEBUGFLAGS) $(DEFS) $(CXXFLAGS)
+LDFLAGS= -Wl,--allow-multiple-definition
+DEBUGFLAGS=
+CXXFLAGS=-Ofast
+xCXXFLAGS= -pthread -m64 -static-libgcc -static-libstdc++ -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security $(DEBUGFLAGS) $(DEFS) $(CXXFLAGS) $(MARCHFLAGS)
 
 HEADERS = $(wildcard *.h)
 OBJS= \
@@ -63,8 +63,7 @@ build/%.o: hash/%.cpp
 
 
 nexus_cpuminer: $(OBJS:obj/%=build/%)
-	$(CXX) $(xCXXFLAGS) -rdynamic -o $@ $^ $(LDFLAGS) $(LIBS)
-
+	$(CXX) $(xCXXFLAGS) -rdynamic -o $@ $^ $(LDFLAGS) $(LIBS) 
 
 clean:
 	-rm -f nexus_cpuminer
