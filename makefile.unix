@@ -20,17 +20,10 @@ LIBS += \
    -l crypto \
    -l gmp
 
-<<<<<<< HEAD
 LDFLAGS= -Wl,--allow-multiple-definition
 DEBUGFLAGS=
 CXXFLAGS=-Ofast
 xCXXFLAGS= -pthread -m64 -static-libgcc -static-libstdc++ -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security $(DEBUGFLAGS) $(DEFS) $(CXXFLAGS) $(MARCHFLAGS)
-=======
-#DEBUGFLAGS=-g
-CXXFLAGS=-Ofast -march=core-avx2
-xCXXFLAGS=-pthread -m64 -static-libgcc -static-libstdc++ -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security \
-    $(DEBUGFLAGS) $(DEFS) $(CXXFLAGS)
->>>>>>> c03e1b7263361f6b1d6edc917652ad954b84bcaa
 
 HEADERS = $(wildcard *.h)
 OBJS= \
