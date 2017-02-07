@@ -546,7 +546,7 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		if (nThreads = Config.nMiningThreads > 0)
+		if (Config.nMiningThreads > 0)
 		{
 			nThreads = Config.nMiningThreads;
 		}
