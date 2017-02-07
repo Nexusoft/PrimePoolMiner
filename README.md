@@ -19,7 +19,7 @@ sudo apt-get install build-essential libboost-all-dev install libdb-dev libdb++-
 
 ```sh
 cd ~
-git clone https://github.com/hashtobewild/PrimePoolMiner.git PrimePoolMiner
+git clone https://github.com/Nexusoft/PrimePoolMiner.git PrimePoolMiner
 ```
 
 ### Build the miner
