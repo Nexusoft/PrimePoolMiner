@@ -5,8 +5,25 @@
 - [ ] Improve command line operation
 - [ ] Profiling and perforfance tweaking
 - [ ] Implement new upstream protocols
+- [ ] Multi Pool Switching
 - [ ] Interface Improvement - Colour!
 
+# Build instructions (Ubuntu)
+### Install dependencies
+sudo apt-get install build-essential libboost-all-dev install libdb-dev libdb++-dev libssl-dev libminiupnpc-dev libqrencode-dev qt4-qmake libqt4-dev libgmp3-dev
+### Clone the repo
+
+```sh
+cd ~
+git clone https://github.com/hashtobewild/PrimePoolMiner.git PrimePoolMiner
+```
+
+### Build the miner
+
+```sh
+cd PrimePoolMiner
+make MARCHFLAGS=-march=native -f makefile.unix
+```
 
 # Original Message: 
 
