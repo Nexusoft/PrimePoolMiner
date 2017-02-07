@@ -2,21 +2,28 @@
  
 			Hash(BEGIN(Satoshi[2010]), END(Sunny[2012])) == Videlicet[2014] ++
    
- [Learn, Create, but do not Forge] Viz. http://www.opensource.org/licenses/mit-license.php
+ [Learn and Create] Viz. http://www.opensource.org/licenses/mit-license.php
   
 *******************************************************************************************/
 
-#ifndef COINSHIELD_UINT1024_H
-#define COINSHIELD_UINT1024_H
+#ifndef NEXUS_UINT1024_H
+#define NEXUS_UINT1024_H
 
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <string>
 #include <vector>
+#include <stdint.h>
 
+/** Linux Specific Work Around (For Now). **/
+#if defined(MAC_OSX) || defined(WIN32)
+typedef int64_t int64;
+typedef uint64_t uint64;
+#else
 typedef long long  int64;
 typedef unsigned long long  uint64;
+#endif
 
 
 /** Base class without constructors for uint256, uint512, uint576, uint1024.
