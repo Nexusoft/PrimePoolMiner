@@ -3,6 +3,8 @@
 
 #include "types.h"
 #include <queue>
+#include "config.h"
+
 
 namespace LLP
 {
@@ -165,10 +167,9 @@ namespace LLP
 namespace Core
 {
 	class ServerConnection;
-	
+	class MinerConfig;
 	extern unsigned int *primes;
 	extern unsigned int *inverses;
-
 	extern unsigned int nBitArray_Size;
 	extern mpz_t  zPrimorial;
 
@@ -177,7 +178,7 @@ namespace Core
 	extern unsigned int nPrimorialEndPrime;
 
 	extern uint64 octuplet_origins[];
-	
+
 	void InitializePrimes();
 	unsigned int SetBits(double nDiff);
 	double GetPrimeDifficulty(CBigNum prime, int checks);
@@ -190,7 +191,6 @@ namespace Core
 	bool PrimeCheck(CBigNum test, int checks);
 	CBigNum FermatTest(CBigNum n, CBigNum a);
 	bool Miller_Rabin(CBigNum n, int checks);
-	
 	
 	
 	/** Class to hold the basic data a Miner will use to build a Block.
@@ -235,7 +235,7 @@ namespace Core
 				THREADS.push_back(new MinerThread(this));
 		}
 		
-		/** Reset the block on each of the Threads. **/
+		/*** Reset the block on each of the Threads. ***/
 		void ResetThreads();
 		void SubmitShare(uint1024 hashPrimeOrigin, uint64 nNonce);
 		void ServerThread();

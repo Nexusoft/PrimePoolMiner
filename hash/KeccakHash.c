@@ -12,6 +12,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 */
 
 #include <string.h>
+
 #include "KeccakHash.h"
 #include "KeccakF-1600-interface.h"
 

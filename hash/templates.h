@@ -2,16 +2,25 @@
  
 			Hash(BEGIN(Satoshi[2010]), END(Sunny[2012])) == Videlicet[2014] ++
    
- [Learn, Create, but do not Forge] Viz. http://www.opensource.org/licenses/mit-license.php
+ [Learn and Create] Viz. http://www.opensource.org/licenses/mit-license.php
   
 *******************************************************************************************/
-
-#ifndef COINSHIELD_TEMPLATES_H
-#define COINSHIELD_TEMPLATES_H
+#ifndef NEXUS_TEMPLATES_H
+#define NEXUS_TEMPLATES_H
 
 #include "uint1024.h"
 #include "skein.h"
+
+/** Ensure the c function names are not treated as mangled for cross platform support (Issue on OSX) **/
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include "KeccakHash.h"
+	
+#if defined(__cplusplus)
+}
+#endif
 
 /** Hashing template for Checksums **/
 template<typename T1>
@@ -24,6 +33,26 @@ inline uint64 SK64(const T1 pbegin, const T1 pend)
 	Skein_256_Init  (&ctx, 64);
 	Skein_256_Update(&ctx, (pbegin == pend ? pblank : (unsigned char*)&pbegin[0]), (pend - pbegin) * sizeof(pbegin[0]));
 	Skein_256_Final (&ctx, (unsigned char *)&skein);
+	
+    uint64 keccak;
+	Keccak_HashInstance ctx_keccak;
+	Keccak_HashInitialize(&ctx_keccak, 1344, 256, 64, 0x06);
+	Keccak_HashUpdate(&ctx_keccak, (unsigned char *)&skein, 64);
+	Keccak_HashFinal(&ctx_keccak, (unsigned char *)&keccak);
+	
+	return keccak;
+}
+
+/** Hashing template for Address Generation **/
+inline uint64 SK64(const std::vector<unsigned char>& vch)
+{
+	static unsigned char pblank[1];
+	
+    uint64 skein;
+	Skein_256_Ctxt_t ctx;
+	Skein_256_Init(&ctx, 64);
+	Skein_256_Update(&ctx, (unsigned char *)&vch[0], vch.size());
+	Skein_256_Final(&ctx, (unsigned char *)&skein);
 	
     uint64 keccak;
 	Keccak_HashInstance ctx_keccak;
@@ -70,6 +99,28 @@ inline uint256 SK256(const T1 pbegin, const T1 pend)
 	Keccak_HashInstance ctx_keccak;
 	Keccak_HashInitialize_SHA3_256(&ctx_keccak);
 	Keccak_HashUpdate(&ctx_keccak, (unsigned char *)&skein, 256);
+	Keccak_HashFinal(&ctx_keccak, (unsigned char *)&keccak);
+	
+	return keccak;
+}
+
+/** Hashing template for Trust Key Hash **/
+template<typename T1>
+inline uint512 SK512(const std::vector<unsigned char>& vch, const T1 pbegin, const T1 pend)
+{
+	static unsigned char pblank[1];
+	
+    uint512 skein;
+	Skein_512_Ctxt_t ctx;
+	Skein_512_Init(&ctx, 512);
+	Skein_512_Update(&ctx, (unsigned char *)&vch[0], vch.size());
+	Skein_512_Update(&ctx, (pbegin == pend ? pblank : (unsigned char*)&pbegin[0]), (pend - pbegin) * sizeof(pbegin[0]));
+	Skein_512_Final(&ctx, (unsigned char *)&skein);
+	
+    uint512 keccak;
+	Keccak_HashInstance ctx_keccak;
+	Keccak_HashInitialize_SHA3_512(&ctx_keccak);
+	Keccak_HashUpdate(&ctx_keccak, (unsigned char *)&skein, 512);
 	Keccak_HashFinal(&ctx_keccak, (unsigned char *)&keccak);
 	
 	return keccak;
