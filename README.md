@@ -1,10 +1,11 @@
 # Nexus (Coinshield) CPU Pool Miner: This is the enhanced and customized CPU Pool miner.
 
 - [x] Add (basic) config file functionality
+- [ ] Address all the build warnings
 - [ ] Improve command line operation
-- [ ] Interface Improvement - Colour!
 - [ ] Profiling and perforfance tweaking
 - [ ] Implement new upstream protocols
+- [ ] Interface Improvement - Colour!
 
 
 # Original Message: 

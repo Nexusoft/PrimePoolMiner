@@ -46,7 +46,7 @@ namespace Core
 				unsigned int j = 0;
 				unsigned int nSize = 0;
 				unsigned int nPrimeCount = 0;
-				unsigned int nSieveDifficulty = 0;
+				//unsigned int nSieveDifficulty = 0;
 				uint64 nStart = 0;
 				uint64 nStop = 0;
 				unsigned int nLastOffset = 0;
@@ -57,8 +57,8 @@ namespace Core
 					unsigned long nNonce = 0;
 				#endif
 				
-				long nElapsedTime = 0;
-				long nStartTime = 0;
+				//long nElapsedTime = 0;
+				//long nStartTime = 0;
 				mpz_init(zPrimeOriginOffset);
 				mpz_init(zFirstSieveElement);
 				mpz_init(zPrimorialMod);

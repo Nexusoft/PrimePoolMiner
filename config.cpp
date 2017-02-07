@@ -29,15 +29,15 @@ namespace Core
 	{
 		printf("Configuration: \n");
 		printf("-------------\n");
-		printf("Host: {%s} \n", strHost);
-		printf("Port: {%s}", nPort);
-		printf("Address: {%s} \n", strNxsAddress);
-		printf("Threads: {%n}", nMiningThreads);
-		printf("Timeout: {%n}", nTimeout);
-		printf("Bit Array Size: {%n}", nBitArraySize);
-		printf("Prime Limit: {%n}", primeLimit);
-		printf("N Prime Limit: {%n}", nPrimeLimit);
-		printf("Primorial End Prime: {%n}", nPrimorialEndPrime);
+		printf("Host: %s \n", strHost.c_str());
+		printf("Port: %s \n", nPort.c_str());
+		printf("Address: %s \n", strNxsAddress.c_str());
+		printf("Threads: %i \n", nMiningThreads);
+		printf("Timeout: %i \n", nTimeout);
+		printf("Bit Array Size: %u \n", nBitArraySize);
+		printf("Prime Limit: %u \n", primeLimit);
+		printf("N Prime Limit: %u}", nPrimeLimit);
+		printf("Primorial End Prime: %u \n", nPrimorialEndPrime);
 	}
 
 
