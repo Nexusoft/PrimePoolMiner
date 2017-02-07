@@ -10,7 +10,11 @@
 
 # Build instructions (Ubuntu)
 ### Install dependencies
+
+```sh
 sudo apt-get install build-essential libboost-all-dev install libdb-dev libdb++-dev libssl-dev libminiupnpc-dev libqrencode-dev qt4-qmake libqt4-dev libgmp3-dev
+```
+
 ### Clone the repo
 
 ```sh
