@@ -1,4 +1,4 @@
-Alt-H1 Nexus (Coinshield) CPU Pool Miner:
+= Nexus (Coinshield) CPU Pool Miner:
 This is the enhanced and customized CPU Pool miner.
 
 - [x] Add (basic) config file functionality
@@ -7,7 +7,7 @@ This is the enhanced and customized CPU Pool miner.
 - [] Profiling and perforfance tweaking
 - [] Implement new upstream protocols
 
-Alt-H1 Original Message:
+= Original Message:
 This is the Miner for NXS Pools.
 Start it with commandline arguments IP PORT ADDRESS.
 Optional arguments are THREADS and TIMEOUT following ADDRESS.
