@@ -1,4 +1,5 @@
 #include "core.h"
+#include "config.cpp"
 
 unsigned int nBestHeight = 0;
 unsigned int nStartTimer = 0;
@@ -270,7 +271,7 @@ namespace Core
 		SUBMIT_QUEUE.push(std::make_pair(hashPrimeOrigin, nNonce));
 		SUBMIT_MUTEX.unlock();
 	}
-	
+		
 		
 	/** Main Connection Thread. Handles all the networking to allow
 		Mining threads the most performance. **/
@@ -483,41 +484,90 @@ namespace Core
 		}
 	}
 
+
 }
 
 int main(int argc, char *argv[])
 {
-
-	if(argc < 4)
-	{
-		printf("Too Few Arguments. The Required Arguments are 'IP PORT ADDRESS'\n");
-		printf("Default Arguments are Total Threads = CPU Cores and Connection Timeout = 10 Seconds\n");
-		printf("Format for Arguments is 'IP PORT ADDRESS THREADS TIMEOUT'\n");
-		
-		Sleep(10000);
-		
-		return 0;
-	}
-		
-	std::string IP = argv[1];
-	std::string PORT = argv[2];
-	ADDRESS          = argv[3];
+	// HashToBeWild!:
+	std::string IP = "";
+	std::string PORT = "";
+	ADDRESS = "";
 	
+	Core::MinerConfig Config;
+	if(Config.ReadConfig())
+	{
+		printf("Using the config file...\n");
+		// populate settings from config object
+		IP = Config.strHost;
+		PORT = Config.nPort;
+		ADDRESS = Config.strNxsAddress;
+	}
+	else
+	{
+		printf("Config file not available... using command line\n");
+		if(argc < 4)
+		{
+			printf("Too Few Arguments. The Required Arguments are 'IP PORT ADDRESS'\n");
+			printf("Default Arguments are Total Threads = CPU Cores and Connection Timeout = 10 Seconds\n");
+			printf("Format for Arguments is 'IP PORT ADDRESS THREADS TIMEOUT'\n");		
+			Sleep(10000);		
+			return 0;
+		}		
+	}
+	
+	// Command line overrides the config file
+	if (argc > 3)
+	{
+		IP = argv[1];
+		PORT = argv[2];
+		ADDRESS = argv[3];		
+	}
+
 	int nThreads = GetTotalCores(), nTimeout = 10;
 	
 	if(argc > 4)
+	{
 		nThreads = boost::lexical_cast<int>(argv[4]);
+	}
+	else
+	{
+		if (Config.nMiningThreads > 0)
+		{
+			nThreads = Config.nMiningThreads ;
+		}
+	}
 	
 	if(argc > 5)
+	{
 		nTimeout = boost::lexical_cast<int>(argv[5]);
-	
-	printf("Coinshield Prime Pool Miner 1.0.0 - Created by Videlicet - Optimized by Supercomputing\n");
+	}
+	else
+	{
+		if (nThreads = Config.nMiningThreads > 0)
+		{
+			nThreads = Config.nMiningThreads;
+		}
+	}
+			
+	printf("Nexus (Coinshield) Prime Pool Miner 1.0.1 - Created by Videlicet - Optimized by Supercomputing extended by paulscreen and hashtobewild \n");
 	printf("Using Supplied Account Address %s\n", ADDRESS.c_str());
-	printf("Initializing Miner %s:%s Threads = %i Timeout = %i\n", IP.c_str(), PORT.c_str(), nThreads, nTimeout);
+	printf("Initializing Miner \n");
+	printf("Host %s\n", IP.c_str());
+	printf("Port: %s\n", PORT.c_str());
+	printf("Threads: %i\n", nThreads);
+	printf("Timeout = %i\n\n", nTimeout);
 	
 	Core::InitializePrimes();
-	nStartTimer = (unsigned int)time(0);
 	
+	
+	
+	nStartTimer = (unsigned int)time(0);
+	Core::nBitArray_Size = Config.nBitArraySize ;
+	Core::prime_limit = Config.primeLimit ;
+	Core::nPrimeLimit = Config.nPrimeLimit ;
+	Core::nPrimorialEndPrime = Config.nPrimorialEndPrime ;
+
 	Core::ServerConnection MINERS(IP, PORT, nThreads, nTimeout);
 	
 	loop { Sleep(10); }
