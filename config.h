@@ -18,7 +18,7 @@ namespace Core
     public:
         MinerConfig();
         bool ReadConfig();
-	void PrintConfig();
+	    void PrintConfig();
 
 	// Standard config
         std::string  strHost;

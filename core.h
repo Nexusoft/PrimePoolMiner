@@ -84,6 +84,7 @@ namespace LLP
 			SUBMIT_SHARE     = 2,
 			ACCOUNT_BALANCE  = 3,
 			PENDING_PAYOUT   = 4,
+			SUBMIT_PPS     	= 5,
 			
 					
 			/** REQUEST PACKETS **/
@@ -133,7 +134,22 @@ namespace LLP
 		
 		
 		/** Ping the Pool Server to let it know Connection is Still Alive. **/
-		inline void Ping() { this -> WritePacket(GetPacket(PING)); }
+		inline void SubmitPPS(double PPS, double WPS) 
+		{ 
+			Packet PACKET = GetPacket(SUBMIT_PPS);
+			std::vector<unsigned char> vPPSBytes = double2bytes(PPS);
+			std::vector<unsigned char> vWPSBytes = double2bytes(WPS);
+			// add PPS
+			PACKET.DATA.insert(PACKET.DATA.end(),vPPSBytes.begin(), vPPSBytes.end()  );
+			
+			// add WPS
+			PACKET.DATA.insert(PACKET.DATA.end(),vWPSBytes.begin(), vWPSBytes.end()  );
+
+			PACKET.LENGTH = PACKET.DATA.size();
+
+			this->WritePacket(PACKET);
+			
+		}
 		
 		
 		/** Send your address for Pool Login. **/

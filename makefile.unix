@@ -35,7 +35,8 @@ OBJS= \
 	build/KeccakHash.o \
 	build/util.o \
 	build/prime.o \
-	build/miner.o
+	build/miner.o \
+	build/config.o
 
 
 all: nexus_cpuminer

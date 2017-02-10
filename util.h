@@ -5,9 +5,9 @@
 #include "hash/templates.h"
 #include "bignum.h"
 
-#if defined _WIN32 || defined WIN32
+#if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
 	typedef int pid_t;
-#else
+#elif !defined __MINGW32__
 	#include <sys/types.h>
 	#include <sys/time.h>
 	#include <sys/resource.h>
@@ -96,6 +96,26 @@ inline std::string bytes2string(std::vector<unsigned char> BYTES)
 	return STRING;
 }
 
+inline std::vector<unsigned char> double2bytes(double DOUBLE)
+{
+    union {
+        double DOUBLE;
+        uint64 UINT64;
+    } u;
+    u.DOUBLE = DOUBLE;
 
+    return uint2bytes64(u.UINT64);
+}
+
+inline double bytes2double(std::vector<unsigned char> BYTES)
+{
+    uint64 n64 = bytes2uint64(BYTES);
+    union {
+        double DOUBLE;
+        uint64 UINT64;
+    } u;
+    u.UINT64 = n64;
+    return u.DOUBLE;
+}
 
 #endif
