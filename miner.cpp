@@ -1,5 +1,7 @@
 #include "core.h"
-#include "config.cpp"
+#include "config.h"
+#include <deque>
+#include <numeric>
 
 #pragma GCC optimize ("unroll-loops")
 
@@ -14,6 +16,8 @@ std::string ADDRESS;
 uint64 nCurrentPayout = 0, nAccountBalance = 0;
 
 static LLP::Timer cPrimeTimer;
+std::deque<double> vPPSValues;
+std::deque<double> vWPSValues;
 
 namespace Core
 {
@@ -51,7 +55,7 @@ namespace Core
 				uint64 nStop = 0;
 				unsigned int nLastOffset = 0;
 				
-				#if defined _WIN32 || defined WIN32
+				#if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
 					uint64 nNonce = 0;
 				#else
 					unsigned long nNonce = 0;
@@ -83,7 +87,7 @@ namespace Core
 
 					mpz_mod(zPrimorialMod, zPrimorialMod, zPrimorial);
 					
-					#if defined _WIN32 || defined WIN32
+					#if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
 						mpz_import(zOctuplet, 1, 1, sizeof(octuplet_origins[j]), 0, 0, &octuplet_origins[j]);
 						mpz_add(zPrimorialMod, zPrimorialMod, zOctuplet);
 					#else
@@ -153,14 +157,15 @@ namespace Core
 							bit_array_sieve[(index)>>3] |= (1<<((index)&7));
 							index += p;
 						}
+
+
 					}
 
-					
 					for(i=0; i<nBitArray_Size && !fNewBlockRestart; i++)
 					{
 						if( bit_array_sieve[(i)>>3] & (1<<((i)&7)) )
 							continue;
-                        	
+
 						// p1
 						mpz_mul_ui(zTempVar, zPrimorial, i);
 						mpz_add(zTempVar, zFirstSieveElement, zTempVar);
@@ -175,7 +180,6 @@ namespace Core
 						nStop = 2;
 						nPrimeCount = 1;
 						nLastOffset = 2;
-						cPrimeTimer.Reset();
 						nPrimes+=2;
 
                          mpz_add_ui(zTempVar, zTempVar, 2);
@@ -196,11 +200,11 @@ namespace Core
 							nLastOffset += 2;
 						}
 
-						if(nPrimeCount >= 4 && !fNewBlockRestart)
+						if(nPrimeCount >= 3 && !fNewBlockRestart)
 						{   
 							mpz_sub(zTempVar, zPrimeOriginOffset, zPrimeOrigin);
 							
-							#if defined _WIN32 || defined WIN32
+							#if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
 								nNonce = mpz2uint64(zTempVar);
 							#else
 								nNonce = mpz_get_ui(zTempVar);
@@ -210,13 +214,15 @@ namespace Core
 							if(nSieveBits > nLargestShare)
 								nLargestShare = nSieveBits;
 
+							unsigned int nDiff = GetPrimeBits((BaseHash + nNonce), 1);
+
+							nWeight += nDiff * 50;
+
 							if(nSieveBits < nMinimumShare)
 								continue;
-							
-							unsigned int nDiff = GetPrimeBits((BaseHash + nNonce), 1);
+
 							if(nDiff >= nMinimumShare)
 							{
-								nWeight += nDiff * 50;
 								cServerConnection->SubmitShare(BaseHash.getuint1024(), nNonce);
 							}
 						}
@@ -291,6 +297,7 @@ namespace Core
 				
 		/** Initialize a Timer for the Hash Meter. **/
 		TIMER.Start();
+		cPrimeTimer.Start();
 			
 		//unsigned int nBestHeight = 0;
 		loop
@@ -316,9 +323,31 @@ namespace Core
 						ResetThreads();
 					}
 				}
+
+				if( cPrimeTimer.Elapsed() >= 1)
+				{
+					unsigned int nElapsed = cPrimeTimer.Elapsed();
+					
+					double PPS = (double) nPrimes / (double)(nElapsed );
+					double WPS = (double)nWeight / (double)(nElapsed * 10000000);
+
+					if( vPPSValues.size() >= 300)
+						vPPSValues.pop_front();
+					
+					vPPSValues.push_back(PPS);
+
+					if( vWPSValues.size() >= 300)
+						vWPSValues.pop_front();
+					
+					vWPSValues.push_back(WPS);
+					
+					nPrimes = 0;
+					nWeight = 0;
+					cPrimeTimer.Reset();
+				}
 					
 				/** Rudimentary Meter **/
-				if(TIMER.Elapsed() > 10)
+				if(TIMER.Elapsed() >= 10)
 				{
 				
 					nElements++;
@@ -326,12 +355,13 @@ namespace Core
 					unsigned int SecondsElapsed = (unsigned int)time(0) - nStartTimer;
 					unsigned int nElapsed = TIMER.Elapsed();
 					
-					double PPS = (double) nPrimes / (nElapsed * nElements);
-					double WPS = nWeight / (nElapsed * nElements * 10000000);
+					double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
+					double WPS = 1.0 * std::accumulate(vWPSValues.begin(), vWPSValues.end(), 0LL) / vWPSValues.size();;
 
 					printf("[METERS] %f PPS | %f WPS | Largest Share %f | Difficulty %f | Height = %u | Balance: %f NXS | Payout: %f NXS | %02d:%02d:%02d\n", PPS, WPS, nLargestShare / 10000000.0, nDifficulty / 10000000.0, nBestHeight, nAccountBalance / 1000000.0, nCurrentPayout / 1000000.0, (SecondsElapsed/3600)%60, (SecondsElapsed/60)%60, (SecondsElapsed)%60);
 						
-					CLIENT->Ping();
+					CLIENT->SubmitPPS(PPS, WPS);
+
 					TIMER.Reset();
 				}
 					
