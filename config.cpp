@@ -14,9 +14,9 @@ namespace Core
 {
 	MinerConfig::MinerConfig()
 	{
-		strHost = "127.0.0.1";
+		strHost = "";
 		nPort = "9549"; // 9325 for solo
-		strNxsAddress = "2RjohSoM34UazsV8iHxaFrJ5f6eeeohLWE83QkLYbHKNnBz1cND";
+		strNxsAddress = "2S4PPSznWfPVLtPJNpi8Ly46Wft3wGbayGkhaGzKLVcepmrhKTP";
 		nMiningThreads = 0; // 0 = use all threads
 		nTimeout = 10; 
 		nBitArraySize = 37748736; // 1024*1024*36

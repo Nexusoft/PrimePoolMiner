@@ -30,7 +30,9 @@ make MARCHFLAGS=-march=native -f makefile.unix
 ```
 
 ### miner.conf
-The pool miner can now be configured via miner.conf.
+The pool miner can now be configured via miner.conf.  An example file miner.conf.example is included.  
+Please copy/rename it to miner.conf in order to use it .
+ 
 You can adjust the parameters used to initialise the prime sieving / wheel factorisation to optimise the PPS/WPS for your CPU. 
 
 	"host": <the pool hostname / ipaddress to connect to> 
