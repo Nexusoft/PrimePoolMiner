@@ -1,7 +1,7 @@
 {
-	"host": "nexusminingpool.com",
+	"host": "",
 	"port": "9549",
-	"nxs_address": "2SSbxVqakuEQeTLk8cgGKeWCiVrsyJtFMrvKxJDmuY3nRAmr2uJ",
+	"nxs_address": "",
 	"threads": 0,
 	"timeout": 10,
 	"bit_array_size": 37748736,
