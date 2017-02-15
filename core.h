@@ -132,8 +132,10 @@ namespace LLP
 		/** Get the Current Pending Payouts for the Next Coinbase Tx. **/
 		inline void GetPayouts()  { this -> WritePacket(GetPacket(GET_PAYOUT)); }
 		
-		
 		/** Ping the Pool Server to let it know Connection is Still Alive. **/
+		inline void Ping() { this -> WritePacket(GetPacket(PING)); }
+		
+		/** Send current PPS / WPS data to the pool **/
 		inline void SubmitPPS(double PPS, double WPS) 
 		{ 
 			Packet PACKET = GetPacket(SUBMIT_PPS);
