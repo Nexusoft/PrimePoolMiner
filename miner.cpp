@@ -3,6 +3,8 @@
 #include <deque>
 #include <numeric>
 
+#include "oacc/AccSieve.h"
+
 #pragma GCC optimize ("unroll-loops")
 
 unsigned int nBestHeight = 0;
@@ -25,6 +27,8 @@ namespace Core
 	/** Main Miner Thread. Bound to the class with boost. Might take some rearranging to get working with OpenCL. **/
 	void MinerThread::PrimeMiner()
 	{
+		
+
 		loop
 		{
 			try
@@ -76,10 +80,11 @@ namespace Core
 				bignum2mpz(&BaseHash, zPrimeOrigin);
 				
 				nSize = mpz_sizeinbase(zPrimeOrigin, 2);
-				unsigned char* bit_array_sieve = (unsigned char*)malloc((nBitArray_Size)/8);
-				
+				//unsigned int* bit_array_sieve = (unsigned int*)malloc((nBitArray_Size)/8);
+				unsigned char* bit_array_sieve = (unsigned char*)aligned_alloc(64, (nBitArray_Size) / 8);
 				for(j=0; j<256 && !fNewBlockRestart; j++)
 				{
+					/*
 					memset(bit_array_sieve, 0x00, (nBitArray_Size)/8);
 
 					mpz_mod(zPrimorialMod, zPrimeOrigin, zPrimorial);
@@ -109,7 +114,7 @@ namespace Core
 						unsigned int index = r % p;
 						while(index < nBitArray_Size)
 						{
-							bit_array_sieve[(index)>>3] |= (1<<((index)&7));
+							bit_array_sieve[(index)>>5] |= (1<<((index)&31));
 							index += p;
 						}
 							
@@ -120,7 +125,7 @@ namespace Core
 						index = r % p;
 						while(index < nBitArray_Size)
 						{
-							bit_array_sieve[(index)>>3] |= (1<<((index)&7));
+							bit_array_sieve[(index) >> 5] |= (1 << ((index) & 31));
 							index += p;
 						}
 
@@ -131,7 +136,7 @@ namespace Core
 						index = r % p;
 						while(index < nBitArray_Size)
 						{
-							bit_array_sieve[(index)>>3] |= (1<<((index)&7));
+							bit_array_sieve[(index) >> 5] |= (1 << ((index) & 31));
 							index += p;
 						}
 
@@ -143,7 +148,7 @@ namespace Core
 						index = r % p;
 						while(index < nBitArray_Size)
 						{
-								bit_array_sieve[(index)>>3] |= (1<<((index)&7));
+							bit_array_sieve[(index) >> 5] |= (1 << ((index) & 31));
 							index += p;
 						}
 						
@@ -154,13 +159,36 @@ namespace Core
 						index = r % p;
 						while(index < nBitArray_Size)
 						{
-							bit_array_sieve[(index)>>3] |= (1<<((index)&7));
+							bit_array_sieve[(index) >> 5] |= (1 << ((index) & 31));
 							index += p;
 						}
-
-
 					}
+					*/
+					pgisieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, octuplet_origins[j], primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement);
 
+					std::vector<unsigned long>  candidates;
+					check_candidates(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, zFirstSieveElement, 3, &candidates);
+					printf("acc candidates count %u\n", candidates.size());
+					for (std::vector<unsigned long>::iterator it = candidates.begin(); it != candidates.end(); ++it)
+					{
+						nNonce = *it;
+						unsigned int nDiff = GetPrimeBits((BaseHash + nNonce), 1);
+
+						nWeight += nDiff * 50;
+
+						if (nDiff > nLargestShare)
+							nLargestShare = nDiff;
+
+						if (nDiff < nMinimumShare)
+							continue;
+
+						if (nDiff >= nMinimumShare)
+						{
+							printf("Submitting share %ul\n", nDiff);
+							cServerConnection->SubmitShare(BaseHash.getuint1024(), nNonce);
+						}
+					}
+					/*
 					for(i=0; i<nBitArray_Size && !fNewBlockRestart; i++)
 					{
 						if( bit_array_sieve[(i)>>3] & (1<<((i)&7)) )
@@ -227,8 +255,9 @@ namespace Core
 							}
 						}
 					}
+					*/
 				}
-
+				
 				mpz_clear(zPrimeOrigin);
 				mpz_clear(zOctuplet);
 				mpz_clear(zPrimeOriginOffset);

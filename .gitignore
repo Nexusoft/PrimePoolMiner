@@ -3,3 +3,12 @@
 ################################################################################
 
 /obj/x64/Debug
+/.vs
+/.vs
+/.vs/config/applicationhost.config
+*.config
+*.suo
+*.db
+*.opendb
+*.bak
+*.user
