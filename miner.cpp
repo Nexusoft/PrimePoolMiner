@@ -81,8 +81,8 @@ namespace Core
 				
 				nSize = mpz_sizeinbase(zPrimeOrigin, 2);
 				//unsigned int* bit_array_sieve = (unsigned int*)malloc((nBitArray_Size)/8);
-				unsigned char* bit_array_sieve = (unsigned char*)aligned_alloc(64, (nBitArray_Size) / 8);
-				for(j=0; j<256 && !fNewBlockRestart; j++)
+				unsigned int * bit_array_sieve = (unsigned int *)aligned_alloc(64, (nBitArray_Size) / 8);
+				for(j=0; j<100 && !fNewBlockRestart; j++)
 				{
 					/*
 					memset(bit_array_sieve, 0x00, (nBitArray_Size)/8);
@@ -164,12 +164,13 @@ namespace Core
 						}
 					}
 					*/
-					pgisieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, octuplet_origins[j], primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement);
-
-					std::vector<unsigned long>  candidates;
-					check_candidates(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, zFirstSieveElement, 3, &candidates);
-					printf("acc candidates count %u\n", candidates.size());
-					for (std::vector<unsigned long>::iterator it = candidates.begin(); it != candidates.end(); ++it)
+					long candidates[MAXCANDIDATESPERSIEVE];
+					pgisieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tentuplet2_origins[j], primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, candidates);
+					std::vector<unsigned long>  nonces;
+					
+					find_tuples(candidates, zPrimorial, zPrimeOrigin, zFirstSieveElement, 3, &nonces);
+					//check_candidates(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, zFirstSieveElement, 3, &nonces);
+					for (std::vector<unsigned long>::iterator it = nonces.begin(); it != nonces.end(); ++it)
 					{
 						nNonce = *it;
 						unsigned int nDiff = GetPrimeBits((BaseHash + nNonce), 1);
@@ -631,7 +632,9 @@ int main(int argc, char *argv[])
 
 	Core::ServerConnection MINERS(IP, PORT, nThreads, nTimeout);
 	
-	loop { Sleep(10); }
+	getchar();
+
+	//loop { Sleep(10); }
 	
 	return 0;
 }

@@ -115,5 +115,6 @@
     <None Include="makefile" />
     <None Include="build\.gitkeep" />
     <None Include="miner.conf.example" />
+    <None Include="miner.conf" />
   </ItemGroup>
 </Project>

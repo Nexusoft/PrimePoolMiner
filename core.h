@@ -196,6 +196,7 @@ namespace Core
 	extern unsigned int nPrimorialEndPrime;
 
 	extern uint64 octuplet_origins[];
+	extern uint64 tentuplet2_origins[];
 
 	void InitializePrimes();
 	unsigned int SetBits(double nDiff);

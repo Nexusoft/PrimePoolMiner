@@ -7,7 +7,8 @@ OUT_DIR = build
 PGCC = pgcc
 PGCXX = pgc++
 PGLIBS = -loaccminer -laccapi -laccg -laccn -laccg2 -ldl -L./ -L/opt/pgi/linux86-64/17.1/lib -L/opt/pgi/linux86-64/16.10/lib
-ACCFLAGS = -fast -Minfo=accel -acc $(OPT) -ta=nvidia:nordc 
+ACCFLAGS = -fast -Minfo=accel -acc $(OPT) -ta=nvidia:nordc -std=c++11 -ta=tesla -larmadillo -lgsl -w 
+#ACCFLAGS = -fast -std=c++11 # Uncomment this and comment the line above to disable OpenACC
 PGCXXFLAGS = -fPIC
 ACCLIBSFLAGS = -Wl,-rpath,./ -Wl,-rpath,/opt/pgi/linux86-64/17.1/lib -Wl,-rpath,/opt/pgi/linux86-64/16.10/lib
 
@@ -90,6 +91,8 @@ nexus_cpuminer: $(OBJS:obj/%=$(OUT_DIR)/%) liboaccminer.so
 clean:
 	-rm -f nexus_cpuminer
 	-rm -f *.so
-	-rm -f -r $(OUT_DIR)/*.o	
-	-rm -f -r $(OUT_DIR)/*.P
+	-rm -f $(OUT_DIR)/*.o	
+	-rm -f $(OUT_DIR)/*.P
+	-rm -f $(OUT_DIR)/oacc/*.o	
+	-rm -f $(OUT_DIR)/oacc/*.P
 FORCE:
