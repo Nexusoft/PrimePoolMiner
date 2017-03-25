@@ -7,12 +7,19 @@
 
 #pragma GCC optimize ("unroll-loops")
 
-unsigned int nBestHeight = 0;
+volatile unsigned int nBestHeight = 0;
 unsigned int nStartTimer = 0;
-uint64 nWeight = 0, nElements = 0, nPrimes = 0;
+volatile uint64 nWeight = 0, nElements = 0, nPrimes = 0;
 double nAverage = 0;
-unsigned int nLargestShare = 0;
+volatile unsigned int nLargestShare = 0;
 unsigned int nDifficulty   = 0;
+volatile uint64 sieveTime = 0;
+volatile uint64 pTestTime = 0;
+volatile uint64 sieveCount = 0;
+volatile uint64 testCount = 0;
+volatile uint64 shareCount = 0;
+volatile uint32_t chainCounter[10] = { 0 };
+
 
 std::string ADDRESS;
 uint64 nCurrentPayout = 0, nAccountBalance = 0;
@@ -23,12 +30,11 @@ std::deque<double> vWPSValues;
 
 namespace Core
 {
-
 	/** Main Miner Thread. Bound to the class with boost. Might take some rearranging to get working with OpenCL. **/
 	void MinerThread::PrimeMiner()
 	{
-		
-
+		//unsigned long candidates[MAXCANDIDATESPERSIEVE];
+		printf("Starting Prime Miner thread\n");
 		loop
 		{
 			try
@@ -82,7 +88,7 @@ namespace Core
 				nSize = mpz_sizeinbase(zPrimeOrigin, 2);
 				//unsigned int* bit_array_sieve = (unsigned int*)malloc((nBitArray_Size)/8);
 				unsigned int * bit_array_sieve = (unsigned int *)aligned_alloc(64, (nBitArray_Size) / 8);
-				for(j=0; j<100 && !fNewBlockRestart; j++)
+				for(j=0; j<153 && !fNewBlockRestart; j++)
 				{
 					/*
 					memset(bit_array_sieve, 0x00, (nBitArray_Size)/8);
@@ -164,11 +170,40 @@ namespace Core
 						}
 					}
 					*/
-					long candidates[MAXCANDIDATESPERSIEVE];
-					pgisieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tentuplet2_origins[j], primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, candidates);
+					int jobId = 0;
+					while (!pcJobQueuePassive.pop(jobId))
+					{
+						printf("Test queue is full!!!!!!\n");
+						Sleep(200);
+
+					}
+					primeTestJob job = cServerConnection->primeTestJobs.at(jobId);
+					job.baseHash->setuint1024(BaseHash.getuint1024());
+
+					int64 nStartTime = GetTimeMicros();
+					pgisieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tentuplet2_origins[j], primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, job.candidates);
+					int64 nAfterSieve = GetTimeMicros();
+
+					mpz_set(job.zFirstSieveElement, zFirstSieveElement);
+					mpz_set(job.zPrimeOrigin, zPrimeOrigin);
+
+					//for (size_t i = 0; i < MAXCANDIDATESPERSIEVE; i++)
+					//{
+					//	job.candidates[i] = candidates[i];
+					//}
+
+					pcJobQueueActive.push(jobId);
+
+					int64 nElapsedTime = nAfterSieve - nStartTime;
+					sieveTime += nElapsedTime;
+					sieveCount++;					
+					/*
 					std::vector<unsigned long>  nonces;
 					
-					find_tuples(candidates, zPrimorial, zPrimeOrigin, zFirstSieveElement, 3, &nonces);
+					nPrimes += find_tuples(job.candidates, zPrimorial, zPrimeOrigin, zFirstSieveElement, 3, &nonces);
+					nElapsedTime = GetTimeMicros() - nAfterSieve;
+					pTestTime += nElapsedTime;
+
 					//check_candidates(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, zFirstSieveElement, 3, &nonces);
 					for (std::vector<unsigned long>::iterator it = nonces.begin(); it != nonces.end(); ++it)
 					{
@@ -189,6 +224,8 @@ namespace Core
 							cServerConnection->SubmitShare(BaseHash.getuint1024(), nNonce);
 						}
 					}
+					
+					*/
 					/*
 					for(i=0; i<nBitArray_Size && !fNewBlockRestart; i++)
 					{
@@ -282,6 +319,19 @@ namespace Core
 	/** Reset the block on each of the Threads. **/
 	void ServerConnection::ResetThreads()
 	{
+		
+		int dummy;
+		while (pcJobQueueActive.pop(dummy))
+		{
+		}
+
+		while (pcJobQueuePassive.pop(dummy))
+		{
+		}
+		for (size_t i = 0; i < 1000; i++)
+		{
+			pcJobQueuePassive.push(i);
+		}
 		/** Clear the Submit Queue. **/
 		SUBMIT_MUTEX.lock();
 		
@@ -317,10 +367,11 @@ namespace Core
 	{
 		
 		/** Don't begin until all mining threads are Created. **/
-		while(THREADS.size() != nThreads)
-			Sleep(1);
+		//while(THREADS.size() != nThreads)
+		//	Sleep(1);
 				
-				
+		int maxChToPrint = 9;
+
 		/** Initialize the Server Connection. **/
 		CLIENT = new LLP::Miner(IP, PORT);
 			
@@ -377,21 +428,40 @@ namespace Core
 				}
 					
 				/** Rudimentary Meter **/
-				if(TIMER.Elapsed() >= 10)
+				if(TIMER.Elapsed() >= 5)
 				{
-				
+					if (sieveCount == 0)
+						sieveCount++;
 					nElements++;
 					
 					unsigned int SecondsElapsed = (unsigned int)time(0) - nStartTimer;
 					unsigned int nElapsed = TIMER.Elapsed();
-					
+					uint64 avgSieveTime = sieveTime / sieveCount;
+					double SPS = (double)sieveCount / (double)SecondsElapsed;
+					double TPS = (double)testCount / (double)SecondsElapsed;
 					double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
 					double WPS = 1.0 * std::accumulate(vWPSValues.begin(), vWPSValues.end(), 0LL) / vWPSValues.size();;
 
 					printf("[METERS] %f PPS | %f WPS | Largest Share %f | Difficulty %f | Height = %u | Balance: %f NXS | Payout: %f NXS | %02d:%02d:%02d\n", PPS, WPS, nLargestShare / 10000000.0, nDifficulty / 10000000.0, nBestHeight, nAccountBalance / 1000000.0, nCurrentPayout / 1000000.0, (SecondsElapsed/3600)%60, (SecondsElapsed/60)%60, (SecondsElapsed)%60);
-						
+					
 					CLIENT->SubmitPPS(PPS, WPS);
+					
 
+					printf( "-----------------------------------------------------------------------------------------------\nch  \t| ");
+					for (int i = 3; i <= maxChToPrint; i++)
+						printf( "%-7d  |  ", i);
+					printf( "\n---------------------------------------------------------------------------------------------\ncount\t| ");
+					for (int i = 3; i <= maxChToPrint; i++)
+						printf( "%-7d  |  ", chainCounter[i]);
+					printf( "\n---------------------------------------------------------------------------------------------\nch/m\t| ");
+					for (int i = 3; i <= maxChToPrint; i++)
+					{
+						double sharePerHour = ((double)chainCounter[i] / SecondsElapsed) * 60.0;
+						printf( "%-7.03f  |  ", sharePerHour);
+					}
+					double sharePerH = ((double)shareCount / SecondsElapsed) * 3600;
+					printf("\n---------------------------------------------------------------------------------------------\n");
+					printf("AVG Time - Sieve: %u - PTest: %u  - Sieve/s: %f - Test/s: %f - Shares Submitted: %u - Share/h: %f \n\n", avgSieveTime, pTestTime / sieveCount, SPS, TPS, shareCount, sharePerH);
 					TIMER.Reset();
 				}
 					
@@ -514,7 +584,8 @@ namespace Core
 							LOCK(THREADS[nIndex]->MUTEX);
 							
 							THREADS[nIndex]->hashPrimeOrigin.SetBytes(std::vector<unsigned char>  (PACKET.DATA.begin(),   PACKET.DATA.end() - 12));
-							THREADS[nIndex]->nMinimumShare = bytes2uint(std::vector<unsigned char>(PACKET.DATA.end() - 12, PACKET.DATA.end() - 8));
+							nMinimumShare = bytes2uint(std::vector<unsigned char>(PACKET.DATA.end() - 12, PACKET.DATA.end() - 8));
+							THREADS[nIndex]->nMinimumShare = nMinimumShare;
 		
 								
 							/** Check that the Block Received is not Obsolete, if so request a new one. **/
@@ -546,6 +617,57 @@ namespace Core
 		}
 	}
 
+	void ServerConnection::PrimeTestThread()
+	{
+		printf("Starting Prime test thread!\n");
+		loop
+		{
+			int jobId = 0;
+			if (pcJobQueueActive.pop(jobId))
+			{				
+			
+				//printf("got job id %u on thread %u\n", jobId, boost::this_thread::get_id());
+
+				primeTestJob job = primeTestJobs.at(jobId);
+
+				std::vector<unsigned long>  nonces;
+				int64 nStartTime = GetTimeMicros();
+				nPrimes += find_tuples(job.candidates, zPrimorial, job.zPrimeOrigin, job.zFirstSieveElement, 3, &nonces);
+				int64 nElapsedTime = GetTimeMicros() - nStartTime;
+				pTestTime += nElapsedTime;
+				testCount++;
+				pcJobQueuePassive.push(jobId);
+
+				for (std::vector<unsigned long>::iterator it = nonces.begin(); it != nonces.end(); ++it)
+				{
+					unsigned long nNonce = *it;
+					unsigned int nDiff = GetPrimeBits((*job.baseHash + nNonce), 1);
+					uint32_t nPrimeCount = nDiff / 10000000;
+					
+					if (nPrimeCount <10)
+					chainCounter[nPrimeCount]++;
+					nWeight += nDiff * 50;
+
+					if (nDiff > nLargestShare)
+						nLargestShare = nDiff;
+
+					if (nDiff < nMinimumShare)
+						continue;
+
+					if (nDiff >= nMinimumShare)
+					{
+						printf("Submitting share %ul\n", nDiff);
+						this->SubmitShare(job.baseHash->getuint1024(), nNonce);
+						shareCount++;
+					}
+				}
+
+
+			}
+			else
+				Sleep(10);
+		}
+	}
 
 }
 
@@ -556,6 +678,12 @@ int main(int argc, char *argv[])
 	std::string PORT = "";
 	ADDRESS = "";
 	
+	for (int i = 0; i < sizeof(chainCounter) / sizeof(uint32_t); i++)
+	{
+		chainCounter[i] = 0;
+	}
+
+
 	Core::MinerConfig Config;
 	if(Config.ReadConfig())
 	{

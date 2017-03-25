@@ -12,3 +12,4 @@
 *.opendb
 *.bak
 *.user
+/build

@@ -118,4 +118,10 @@ inline double bytes2double(std::vector<unsigned char> BYTES)
     return u.DOUBLE;
 }
 
+inline int64 GetTimeMicros()
+{
+	return (boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time()) - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1))).total_microseconds();
+}
+
+
 #endif

@@ -4,7 +4,9 @@
 #include "types.h"
 #include <queue>
 #include "config.h"
-
+#include <boost/thread/thread.hpp>
+#include <boost/lockfree/queue.hpp>
+#include <boost/lockfree/spsc_queue.hpp>
 
 namespace LLP
 {
@@ -182,6 +184,8 @@ namespace LLP
 	
 }
 
+#define MAXCANDIDATESPERSIEVE 1000
+
 namespace Core
 {
 	class ServerConnection;
@@ -194,6 +198,8 @@ namespace Core
 	extern unsigned int prime_limit;
 	extern unsigned int nPrimeLimit;
 	extern unsigned int nPrimorialEndPrime;
+	boost::lockfree::queue<int> pcJobQueueActive(1000);
+	boost::lockfree::queue<int> pcJobQueuePassive(1000);
 
 	extern uint64 octuplet_origins[];
 	extern uint64 tentuplet2_origins[];
@@ -211,7 +217,16 @@ namespace Core
 	CBigNum FermatTest(CBigNum n, CBigNum a);
 	bool Miller_Rabin(CBigNum n, int checks);
 	
-	
+	typedef struct
+	{
+		CBigNum	*	baseHash;
+		//unsigned long  candidates[MAXCANDIDATESPERSIEVE];
+		unsigned long  * candidates;
+		mpz_ptr		zFirstSieveElement;
+		mpz_ptr		zPrimeOrigin;
+	}primeTestJob;
+
+
 	/** Class to hold the basic data a Miner will use to build a Block.
 		Used to allow one Connection for any amount of threads. **/
 	class MinerThread
@@ -239,6 +254,11 @@ namespace Core
 		LLP::Miner* CLIENT;
 		int nThreads, nTimeout;
 		std::vector<MinerThread*> THREADS;
+		
+		std::map<int, primeTestJob> primeTestJobs;
+
+		std::vector<LLP::Thread_t*> PRIMETESTTHREADS;
+
 		LLP::Thread_t THREAD;
 		LLP::Timer    TIMER;
 		std::string   IP, PORT;
@@ -247,11 +267,33 @@ namespace Core
 
 		std::queue<std::pair<uint1024, uint64> > SUBMIT_QUEUE;
 		std::queue<std::pair<uint1024, uint64> > RESPONSE_QUEUE;
+
+		unsigned int nMinimumShare;
 		
 		ServerConnection(std::string ip, std::string port, int nMaxThreads, int nMaxTimeout) : IP(ip), PORT(port), TIMER(), nThreads(nMaxThreads), nTimeout(nMaxTimeout), THREAD(boost::bind(&ServerConnection::ServerThread, this))
 		{
-			for(int nIndex = 0; nIndex < nThreads; nIndex++)
-				THREADS.push_back(new MinerThread(this));
+			//primeTestJobs = (primeTestJob *)malloc(1000 * sizeof(primeTestJob));
+			for (size_t i = 0; i < 1000; i++)
+			{
+				primeTestJob job; 
+				//job.baseHash = (CBigNum *)malloc(sizeof(CBigNum));
+				job.baseHash = new CBigNum(0);
+				job.candidates = (unsigned long *)malloc(sizeof(unsigned long) * MAXCANDIDATESPERSIEVE);
+				job.zFirstSieveElement = (mpz_ptr)malloc(sizeof(__mpz_struct));
+				job.zPrimeOrigin = (mpz_ptr)malloc(sizeof(__mpz_struct));
+				mpz_init(job.zFirstSieveElement);
+				mpz_init(job.zPrimeOrigin);
+				primeTestJobs.insert(std::pair<int, primeTestJob>(i, job));
+				Core::pcJobQueuePassive.push(i);
+			}
+
+			THREADS.push_back(new MinerThread(this));
+
+			for (int nIndex = 0; nIndex < nThreads; nIndex++)
+			{
+				boost::thread * checkThread = new boost::thread(boost::bind(&ServerConnection::PrimeTestThread, this));
+				PRIMETESTTHREADS.push_back(checkThread);				
+			}
 		}
 		
 		/*** Reset the block on each of the Threads. ***/
@@ -259,6 +301,7 @@ namespace Core
 		void SubmitShare(uint1024 hashPrimeOrigin, uint64 nNonce);
 		void ServerThread();
 
+		void PrimeTestThread();
 	};
 }
 

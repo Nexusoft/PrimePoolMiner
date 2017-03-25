@@ -94,7 +94,7 @@ namespace Core
 			}
 		}
 		for(i=2;i<=prime_limit;i++) if(bit_array_sieve[i]==1) n += 1;
-		primes = (unsigned int*)malloc((n + 1) * sizeof(unsigned long));
+		primes = (unsigned int*)malloc((n + 1) * sizeof(unsigned int));
 		primes[0] = n;
 		j = 1;
 		for(i=2;i<=prime_limit;i++) if(bit_array_sieve[i]==1) {
