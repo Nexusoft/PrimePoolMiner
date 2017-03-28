@@ -88,7 +88,7 @@ namespace Core
 				nSize = mpz_sizeinbase(zPrimeOrigin, 2);
 				//unsigned int* bit_array_sieve = (unsigned int*)malloc((nBitArray_Size)/8);
 				unsigned int * bit_array_sieve = (unsigned int *)aligned_alloc(64, (nBitArray_Size) / 8);
-				for(j=0; j<153 && !fNewBlockRestart; j++)
+				for(j=0; j < 153 && !fNewBlockRestart; j++)
 				{
 					/*
 					memset(bit_array_sieve, 0x00, (nBitArray_Size)/8);
@@ -181,17 +181,13 @@ namespace Core
 					job.baseHash->setuint1024(BaseHash.getuint1024());
 
 					int64 nStartTime = GetTimeMicros();
-					pgisieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tentuplet2_origins[j], primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, job.candidates);
+					uint64 tupleOrigin = tentuplet2_origins[j];
+					pgisieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tupleOrigin, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, job.candidates);
 					int64 nAfterSieve = GetTimeMicros();
 
 					mpz_set(job.zFirstSieveElement, zFirstSieveElement);
 					mpz_set(job.zPrimeOrigin, zPrimeOrigin);
-
-					//for (size_t i = 0; i < MAXCANDIDATESPERSIEVE; i++)
-					//{
-					//	job.candidates[i] = candidates[i];
-					//}
-
+										
 					pcJobQueueActive.push(jobId);
 
 					int64 nElapsedTime = nAfterSieve - nStartTime;
@@ -459,6 +455,15 @@ namespace Core
 						double sharePerHour = ((double)chainCounter[i] / SecondsElapsed) * 60.0;
 						printf( "%-7.03f  |  ", sharePerHour);
 					}
+					printf( "\n--------------------------------------------------------------------------------------------\nratio\t| ");
+					for (int i = 3; i <= maxChToPrint; i++)
+					{
+						double chRatio = 0;
+						if (chainCounter[i] != 0)
+							chRatio = ((double)chainCounter[i - 1] / (double)chainCounter[i]);
+						printf( "%-7.03f  |  ", chRatio);
+					}
+
 					double sharePerH = ((double)shareCount / SecondsElapsed) * 3600;
 					printf("\n---------------------------------------------------------------------------------------------\n");
 					printf("AVG Time - Sieve: %u - PTest: %u  - Sieve/s: %f - Test/s: %f - Shares Submitted: %u - Share/h: %f \n\n", avgSieveTime, pTestTime / sieveCount, SPS, TPS, shareCount, sharePerH);
@@ -643,7 +648,7 @@ namespace Core
 					unsigned long nNonce = *it;
 					unsigned int nDiff = GetPrimeBits((*job.baseHash + nNonce), 1);
 					uint32_t nPrimeCount = nDiff / 10000000;
-					
+					//printf(" - %f - Nonce: %u\n", (double)nDiff / 10000000.0, nNonce);
 					if (nPrimeCount <10)
 					chainCounter[nPrimeCount]++;
 					nWeight += nDiff * 50;

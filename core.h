@@ -6,7 +6,6 @@
 #include "config.h"
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/queue.hpp>
-#include <boost/lockfree/spsc_queue.hpp>
 
 namespace LLP
 {
