@@ -7,18 +7,10 @@ using namespace std;
 
 #include "AccSieve.h"
 
-// !!!! 0.5 5ch/m
-//#define PRIMELIMIT 65536 
-//#define SIEVESIZE 65536 * 3
-//#define SIEVETARGET 9
-
-//#define PRIMELIMIT 32768 * 5
-//#define SIEVESIZE 65536 * 2
-//#define SIEVETARGET 8
-
-#define PRIMELIMIT 65536 
-#define SIEVESIZE 65536 * 3
-#define SIEVETARGET 9
+// !!!!!!!!!!!
+#define PRIMELIMIT 16384 * 6
+#define SIEVESIZE 65536 * 8
+#define SIEVETARGET 8
 
 
 static uint32_t _offsets8Tuple1[8] = { 0, 2, 6, 8, 12, 18, 20, 26 };
@@ -66,19 +58,27 @@ void pgisieve(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, m
 
 	
 #pragma acc data //copyin(sieve[0:sieveSizeBytes])
-#pragma acc data copy(candidates[0:MAXCANDIDATESPERSIEVE],cx)
+#pragma acc data copyout(candidates[0:MAXCANDIDATESPERSIEVE],cx)
 {
 		unsigned int indexes[SIEVETARGET+1][PRIMELIMIT];
+		//unsigned int * indexes[SIEVETARGET + 1];
 		unsigned int sieve[SIEVESIZE];
-#pragma acc loop independent
+
+#pragma acc enter data create(sieve[0:SIEVESIZE])  create(indexes[0:SIEVETARGET+1][0:PRIMELIMIT])
+#pragma acc parallel loop present(sieve) device_type(nvidia)  gang num_gangs(256)  worker num_workers(8) vector_length(128)
 		for (size_t i = 0; i < SIEVESIZE; i++)
 		{
 			sieve[i] = 0x0;
 		}
 
+		//for (size_t i = 0; i <= SIEVETARGET; i++)
+		//{
+		//	indexes[i] = (unsigned int *)malloc(PRIMELIMIT * sizeof(unsigned int));
+		//}
+		
 
 #pragma acc data copyin( primes[0:PRIMELIMIT], inverses[0:PRIMELIMIT], base_remainders[0:PRIMELIMIT], _offsets14Tuple1) 
-#pragma acc parallel loop present( primes,inverses,base_remainders)  device_type(nvidia)  gang num_gangs(SIEVETARGET) worker num_workers(256) //vector_length(32)
+#pragma acc parallel loop present( indexes, primes,inverses,base_remainders)  device_type(nvidia)  gang num_gangs(SIEVETARGET) worker num_workers(256) //vector_length(32)
 		{
 #pragma acc loop independent gang
 			for (int pt = 0; pt < SIEVETARGET; pt++)
@@ -98,12 +98,12 @@ void pgisieve(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, m
 					unsigned long r = (p - remainder)*inv;
 					unsigned int idx = r % p;
 					indexes[pt+1][i] = idx;
-
 				}
 			}
 		}//ACC parallel
 
-#pragma acc parallel loop device_type(nvidia)  gang num_gangs(128)  worker num_workers(8) vector_length(128)
+
+#pragma acc parallel loop present(sieve, indexes) device_type(nvidia)  gang num_gangs(256)  worker num_workers(8) vector_length(128)
 		{
 			#pragma acc loop independent gang worker
 			for (unsigned int i = nPrimorialEndPrime; i < PRIMELIMIT; i++)
@@ -125,7 +125,12 @@ void pgisieve(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, m
 
 		} //ACC parallel
 
-		#pragma acc parallel loop present (candidates) gang num_gangs(8) worker num_workers(64)
+		//for (size_t i = 0; i <= SIEVETARGET; i++)
+		//{
+		//	free(indexes[i]);
+		//}
+
+		#pragma acc parallel loop present (candidates, sieve) device_type(nvidia)  gang num_gangs(128)  worker num_workers(8)
 		{
 			cx = 0;
 #pragma acc loop independent worker
@@ -145,6 +150,7 @@ void pgisieve(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, m
 			}
 
 		}  // ACC parallel
+#pragma acc exit data
 #pragma acc data copyout(cx)
 		
 
@@ -153,6 +159,7 @@ void pgisieve(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, m
 	
 	free(base_remainders);
 }
+
 int find_tuples(unsigned long * candidates, mpz_t zPrimorial, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, unsigned int nMinimumPrimeCount, std::vector<unsigned long> * nonces)
 {	
 	mpz_t zPrimeOriginOffset, zTempVar, zTempVar2;
@@ -178,19 +185,19 @@ int find_tuples(unsigned long * candidates, mpz_t zPrimorial, mpz_t zPrimeOrigin
 		unsigned long nLastOffset = 0;
 		int firstPrimeAt = -1;
 
-		mpz_add_ui(zTempVar2, zTempVar, 20);
+		mpz_add_ui(zTempVar2, zTempVar, 18);
 		if (mpz_probab_prime_p(zTempVar2, 0) > 0)
 			n1stPrimeSearchLimit = 12;
 		else
 		{
-			mpz_add_ui(zTempVar2, zTempVar, 18);
+			mpz_add_ui(zTempVar2, zTempVar, 20);
 			if (mpz_probab_prime_p(zTempVar2, 0) > 0)
-				n1stPrimeSearchLimit = 18;
+				n1stPrimeSearchLimit = 20;
 			else
 				//{
-				//	mpz_add_ui(zTempVar2, zTempVar, 6);
+				//	mpz_add_ui(zTempVar2, zTempVar, 26);
 				//	if (mpz_probab_prime_p(zTempVar2, 0) > 0)
-				//		n1stPrimeSearchLimit = 24;
+				//		n1stPrimeSearchLimit = 26;
 				//	else
 				//		continue;
 				//}

@@ -87,7 +87,7 @@ namespace Core
 				
 				nSize = mpz_sizeinbase(zPrimeOrigin, 2);
 				//unsigned int* bit_array_sieve = (unsigned int*)malloc((nBitArray_Size)/8);
-				unsigned int * bit_array_sieve = (unsigned int *)aligned_alloc(64, (nBitArray_Size) / 8);
+				//unsigned int * bit_array_sieve = (unsigned int *)aligned_alloc(64, (nBitArray_Size) / 8);
 				for(j=0; j < 153 && !fNewBlockRestart; j++)
 				{
 					/*
@@ -182,7 +182,7 @@ namespace Core
 
 					int64 nStartTime = GetTimeMicros();
 					uint64 tupleOrigin = tentuplet2_origins[j];
-					pgisieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tupleOrigin, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, job.candidates);
+					pgisieve(NULL, nBitArray_Size, zPrimorial, zPrimeOrigin, tupleOrigin, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, job.candidates);
 					int64 nAfterSieve = GetTimeMicros();
 
 					mpz_set(job.zFirstSieveElement, zFirstSieveElement);
@@ -302,7 +302,7 @@ namespace Core
 				mpz_clear(zPrimorialMod);
 				mpz_clear(zTempVar);
 
-				free(bit_array_sieve);
+				//free(bit_array_sieve);
 
                 if( !fNewBlockRestart && !fBlockWaiting )
 				    fNewBlock = true;
@@ -622,6 +622,94 @@ namespace Core
 		}
 	}
 
+	int find_tuples2(unsigned long * candidates, mpz_t zPrimorial, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, unsigned int nMinimumPrimeCount, std::vector<unsigned long> * nonces)
+	{
+		mpz_t zPrimeOriginOffset, zTempVar, zTempVar2;
+		mpz_init(zPrimeOriginOffset);
+		mpz_init(zTempVar);
+		mpz_init(zTempVar2);
+		int n1stPrimeSearchLimit = 0;
+		int cx = 0;
+		int nPrimes = 0;
+
+		while (candidates[cx] != -1 && cx < MAXCANDIDATESPERSIEVE)
+		{
+			mpz_mul_ui(zTempVar, zPrimorial, candidates[cx]);
+			cx++;
+			mpz_add(zTempVar, zFirstSieveElement, zTempVar);
+			mpz_set(zPrimeOriginOffset, zTempVar);
+
+			unsigned long long nNonce = 0;
+			unsigned int nPrimeCount = 0;
+			unsigned int nSieveDifficulty = 0;
+			unsigned long nStart = 0;
+			unsigned long nStop = 0;
+			unsigned long nLastOffset = 0;
+			int firstPrimeAt = -1;
+
+			mpz_add_ui(zTempVar2, zTempVar, 18);
+			if (mpz_probab_prime_p(zTempVar2, 0) > 0)
+				n1stPrimeSearchLimit = 12;
+			else
+			{
+				mpz_add_ui(zTempVar2, zTempVar, 20);
+				if (mpz_probab_prime_p(zTempVar2, 0) > 0)
+					n1stPrimeSearchLimit = 20;
+				else
+					//{
+					//	mpz_add_ui(zTempVar2, zTempVar, 26);
+					//	if (mpz_probab_prime_p(zTempVar2, 0) > 0)
+					//		n1stPrimeSearchLimit = 26;
+					//	else
+					//		continue;
+					//}
+					continue;
+
+
+			}
+
+			nStop = 0; nPrimeCount = 0; nLastOffset = 0; firstPrimeAt = -1;
+			double diff = 0;
+
+			for (nStart = 0; nStart <= nStop + 12; nStart += 2)
+			{
+				if (mpz_probab_prime_p(zTempVar, 0) > 0)
+				{
+					nStop = nStart;
+					nPrimeCount++;
+					nPrimes++;
+				}
+				if (nPrimeCount == 0 && nStart >= n1stPrimeSearchLimit)
+					break;
+
+				if ((firstPrimeAt == -1 && nPrimeCount == 1))
+				{
+					mpz_set(zPrimeOriginOffset, zTempVar); // zPrimeOriginOffset = zTempVar
+					firstPrimeAt = nStart;
+				}
+
+				mpz_add_ui(zTempVar, zTempVar, 2);
+				nLastOffset += 2;
+			}
+
+			if (nPrimeCount >= nMinimumPrimeCount)
+			{
+				mpz_sub(zTempVar, zPrimeOriginOffset, zPrimeOrigin);
+
+#if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
+				nNonce = mpz2uint64(zTempVar);
+#else
+				nNonce = mpz_get_ui(zTempVar);
+#endif
+				nonces->push_back(nNonce);
+			}
+		}
+		//if (nonces->size() > 0)
+		//	printf("Found %u %u+ tuples out of %u candidates\n", nonces->size(), nMinimumPrimeCount, cx);
+		return nPrimes;
+	}
+
+
 	void ServerConnection::PrimeTestThread()
 	{
 		printf("Starting Prime test thread!\n");
@@ -637,7 +725,7 @@ namespace Core
 
 				std::vector<unsigned long>  nonces;
 				int64 nStartTime = GetTimeMicros();
-				nPrimes += find_tuples(job.candidates, zPrimorial, job.zPrimeOrigin, job.zFirstSieveElement, 3, &nonces);
+				nPrimes += find_tuples2(job.candidates, zPrimorial, job.zPrimeOrigin, job.zFirstSieveElement, 3, &nonces);
 				int64 nElapsedTime = GetTimeMicros() - nStartTime;
 				pTestTime += nElapsedTime;
 				testCount++;

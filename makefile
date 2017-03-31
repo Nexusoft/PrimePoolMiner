@@ -7,7 +7,7 @@ OUT_DIR = build
 PGCC = pgcc
 PGCXX = pgc++
 PGLIBS = -loaccminer -laccapi -laccg -laccn -laccg2 -ldl -L./ -L/opt/pgi/linux86-64/17.1/lib -L/opt/pgi/linux86-64/16.10/lib
-ACCFLAGS = -fast -Minfo=accel -acc $(OPT) -ta=nvidia:nordc -std=c++11 -ta=tesla:managed #-larmadillo -lgsl -w 
+ACCFLAGS = -fast -Minfo=accel -Mprof=ccff -acc $(OPT) -ta=tesla:managed -ta=nvidia:nordc -std=c++11  -larmadillo -lgsl -w  #:managed #-larmadillo -lgsl -w 
 #ACCFLAGS = -fast -std=c++11 # Uncomment this and comment the line above to disable OpenACC
 PGCXXFLAGS = -fPIC
 ACCLIBSFLAGS = -Wl,-rpath,./ -Wl,-rpath,/opt/pgi/linux86-64/17.1/lib -Wl,-rpath,/opt/pgi/linux86-64/16.10/lib
