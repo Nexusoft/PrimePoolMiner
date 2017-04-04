@@ -1,0 +1,1 @@
+cmd /c start /NORMAL "nexus_cpuminer" nexus_cpuminer.exe nexusminingpool.com 9549 2RUpyCM8MSkSWXNLncoCQatKM8xvSvmoyK7gR1MrLDCFoayiLYG 5 7 10
