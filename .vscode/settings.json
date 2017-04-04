@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "*hvector": "cpp",
+        "vector": "cpp",
+        "xstring": "cpp",
+        "list": "cpp",
+        "deque": "cpp",
+        "*hfunctional": "cpp",
+        "tuple": "cpp",
+        "*hxutility": "cpp",
+        "*h*h*hqueue": "cpp",
+        "iostream": "cpp"
+    }
+}

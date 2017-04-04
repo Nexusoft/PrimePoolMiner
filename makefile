@@ -2,15 +2,21 @@
 # Distributed under the MIT/X11 software license, see the accompanying
 # file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
-OUT_DIR = build
+LDFLAGS= -Wl,--allow-multiple-definition
 
-PGCC = pgcc
-PGCXX = pgc++
-PGLIBS = -loaccminer -laccapi -laccg -laccn -laccg2 -ldl -L./ -L/opt/pgi/linux86-64/17.1/lib -L/opt/pgi/linux86-64/16.10/lib
-ACCFLAGS = -fast -Minfo=accel -Mprof=ccff -acc $(OPT) -ta=tesla:managed -ta=nvidia:nordc -std=c++11  -larmadillo -lgsl -w  #:managed #-larmadillo -lgsl -w 
-#ACCFLAGS = -fast -std=c++11 # Uncomment this and comment the line above to disable OpenACC
-PGCXXFLAGS = -fPIC
-ACCLIBSFLAGS = -Wl,-rpath,./ -Wl,-rpath,/opt/pgi/linux86-64/17.1/lib -Wl,-rpath,/opt/pgi/linux86-64/16.10/lib
+OBJ	= o
+EXE	= 
+DLL = .so
+UNAME := $(shell uname -a)
+ifeq ($(findstring CYGWIN_NT, $(UNAME)), CYGWIN_NT)
+OBJ	= obj
+EXE	= .exe
+DLL = .dll
+LDFLAGS += -Wl,--stack,20000000
+endif
+
+
+OUT_DIR = build
 
 DEFS=-DBOOST_SPIRIT_THREADSAFE -DBOOST_THREAD_USE_LIB
 
@@ -30,10 +36,36 @@ LIBS += \
    -l crypto \
    -l gmp
 
-LDFLAGS= -Wl,--allow-multiple-definition
+
 #DEBUGFLAGS= -ggdb -ffunction-sections -O0
-CXXFLAGS=-Ofast
+#CXXFLAGS=-Ofast -mtune=native -march=native -mavx -fabi-version=0
+$(info $(DEBUG))
+ifeq ($(DEBUG),TRUE)
+	CXXFLAGS=-ggdb -ffunction-sections -O0
+else
+	CXXFLAGS=-Ofast -mtune=core2 -march=core2 
+endif
+
 xCXXFLAGS= -pthread -m64 -static-libgcc -static-libstdc++ -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security $(DEBUGFLAGS) $(DEFS) $(CXXFLAGS) $(MARCHFLAGS)
+
+ifdef PGI
+$(info Using PGI OpenACC compiler)
+PGCC = pgcc
+PGCXX = pgc++
+PGLIBS = -laccapi -laccg -laccn -laccg2 -ldl -L./ -L/opt/pgi/linux86-64/17.1/lib -L/opt/pgi/linux86-64/16.10/lib
+ACCFLAGS = -fast -Minfo=accel -Mprof=ccff -acc $(OPT) -ta=tesla:managed -ta=nvidia:nordc -std=c++11 # -larmadillo -lgsl -w  #:managed #-larmadillo -lgsl -w 
+#ACCFLAGS = -fast -std=c++11 # Uncomment this and comment the line above to disable OpenACC
+ACCLIBSFLAGS = -Wl,-rpath,./ -Wl,-rpath,/opt/pgi/linux86-64/17.1/lib -Wl,-rpath,/opt/pgi/linux86-64/16.10/lib
+else
+$(info Using GCC compiler)
+PGCC = $(CC)
+PGCXX = $(CXX)
+PGLIBS = -L./
+ACCFLAGS = $(xCXXFLAGS)
+ACCLIBSFLAGS = -Wl,-rpath,./
+endif
+
+PGCXXFLAGS = -fPIC
 
 HEADERS = $(wildcard *.h)
 OBJS= \
@@ -52,8 +84,8 @@ OBJECTS = $(patsubst %.cpp,%.o,$(wildcard oacc/*.c*))
 
 all: nexus_cpuminer
 
-liboaccminer.so: $(OUT_DIR)/$(OBJECTS)
-	$(PGCXX) -shared -o $@ $^
+liboaccminer$(DLL): $(OUT_DIR)/$(OBJECTS)
+	$(PGCXX) -m64 -shared -o $@ $^ $(LIBS)
 
 $(OUT_DIR)/oacc/%.o: oacc/%.cpp
 	@mkdir -p $(@D)
@@ -85,12 +117,12 @@ $(OUT_DIR)/%.o: hash/%.cpp
 	  rm -f $(@:%.o=%.d)
 
 
-nexus_cpuminer: $(OBJS:obj/%=$(OUT_DIR)/%) liboaccminer.so
-	$(CXX) $(xCXXFLAGS) -rdynamic -o $@ $^ $(LDFLAGS) $(LIBS) $(PGLIBS) $(ACCLIBSFLAGS)
+nexus_cpuminer: $(OBJS:obj/%=$(OUT_DIR)/%) liboaccminer$(DLL)
+	$(CXX) $(xCXXFLAGS) -rdynamic -o $@ $^ $(LDFLAGS) -loaccminer $(LIBS) $(PGLIBS) $(ACCLIBSFLAGS) 
 
 clean:
-	-rm -f nexus_cpuminer
-	-rm -f *.so
+	-rm -f nexus_cpuminer$(EXE)
+	-rm -f liboaccminer$(DLL)
 	-rm -f $(OUT_DIR)/*.o	
 	-rm -f $(OUT_DIR)/*.P
 	-rm -f $(OUT_DIR)/oacc/*.o	

@@ -4,6 +4,7 @@
 
 #include <gmp.h>
 #include <vector>
+#include <stdint.h>
 
 #define MAXCANDIDATESPERSIEVE 1000
 

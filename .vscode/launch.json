@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C++ Launch (GDB)",
+            "type": "cppdbg",
+            "request": "launch",
+            "launchOptionType": "Local",
+            "targetArchitecture": "x64",
+            "program": "${workspaceRoot}/nexus_cpuminer.exe",
+            "args": [
+                    // pool
+                     "nexusminingpool.com", "9549",
+                    // testnet
+                    //"127.0.0.1", "8325", 
+		                "2RUpyCM8MSkSWXNLncoCQatKM8xvSvmoyK7gR1MrLDCFoayiLYG", 
+                    "1", "1", "10"
+                ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": true,
+            "miDebuggerPath":"C:\\cygwin64_Test\\bin\\gdb.exe"
+        },
+        {
+            "name": "C++ Attach (GDB)",
+            "type": "cppdbg",
+            "request": "launch",
+            "launchOptionType": "Local",
+            "targetArchitecture": "x64",
+            "program": "${workspaceRoot}/nexus_cpuminer.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "processId": "enter program's process ID",
+            "externalConsole": false,
+            "miDebuggerPath":"C:\\cygwin64_Test\\bin\\gdb.exe"
+        }
+    ]
+}

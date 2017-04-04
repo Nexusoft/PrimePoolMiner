@@ -13,3 +13,5 @@
 *.bak
 *.user
 /build
+*.dll
+*.exe

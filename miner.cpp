@@ -18,6 +18,10 @@ volatile uint64 pTestTime = 0;
 volatile uint64 sieveCount = 0;
 volatile uint64 testCount = 0;
 volatile uint64 shareCount = 0;
+volatile uint64 candidateCount = 0;
+volatile uint64 candidateHitCount = 0;
+volatile uint64 candidateHit2Count = 0;
+volatile uint64 totalShareWeight = 0;
 volatile uint32_t chainCounter[10] = { 0 };
 
 
@@ -41,7 +45,6 @@ namespace Core
 			{
 				/** Keep thread at idle CPU usage if waiting to submit or recieve block. **/
 				Sleep(1);
-				
 				
 				/** Assure that this thread stays idle when waiting for new block, or share submission. **/
 				if(fNewBlock || fBlockWaiting || !fNewBlockRestart)
@@ -437,11 +440,13 @@ namespace Core
 					double TPS = (double)testCount / (double)SecondsElapsed;
 					double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
 					double WPS = 1.0 * std::accumulate(vWPSValues.begin(), vWPSValues.end(), 0LL) / vWPSValues.size();;
+					struct tm t;
+					time_t aclock = SecondsElapsed;
+					gmtime_r(&aclock, &t);
 
-					printf("[METERS] %f PPS | %f WPS | Largest Share %f | Difficulty %f | Height = %u | Balance: %f NXS | Payout: %f NXS | %02d:%02d:%02d\n", PPS, WPS, nLargestShare / 10000000.0, nDifficulty / 10000000.0, nBestHeight, nAccountBalance / 1000000.0, nCurrentPayout / 1000000.0, (SecondsElapsed/3600)%60, (SecondsElapsed/60)%60, (SecondsElapsed)%60);
+					printf("[METERS] %f WPS | Largest Share %f | Diff. %f | Height = %u | Balance: %f NXS | Payout: %f NXS | %02dd-%02d:%02d:%02d\n", WPS, nLargestShare / 10000000.0, nDifficulty / 10000000.0, nBestHeight, nAccountBalance / 1000000.0, nCurrentPayout / 1000000.0, t.tm_yday, t.tm_hour, t.tm_min, t.tm_sec);
 					
 					CLIENT->SubmitPPS(PPS, WPS);
-					
 
 					printf( "-----------------------------------------------------------------------------------------------\nch  \t| ");
 					for (int i = 3; i <= maxChToPrint; i++)
@@ -465,8 +470,16 @@ namespace Core
 					}
 
 					double sharePerH = ((double)shareCount / SecondsElapsed) * 3600;
+					double shareWeightPerH = ((double)totalShareWeight / SecondsElapsed) * 3.6;
 					printf("\n---------------------------------------------------------------------------------------------\n");
-					printf("AVG Time - Sieve: %u - PTest: %u  - Sieve/s: %f - Test/s: %f - Shares Submitted: %u - Share/h: %f \n\n", avgSieveTime, pTestTime / sieveCount, SPS, TPS, shareCount, sharePerH);
+					printf("AVG Time - Sieve: %u - PTest: %u  - Siv/s: %-7.03f - Tst/s: %-7.03f - Shares: %u - Shr/h: %-7.03f - TotalShareValue: %u - ShrVal/h: %-5.02fK\n", \
+						avgSieveTime, testCount == 0 ? 0 : pTestTime / testCount, SPS, TPS, shareCount, sharePerH, totalShareWeight, shareWeightPerH);
+			
+					printf("AvgCandCnt: %u - CandHit : %-2.02f%% 2nd : %-2.02f%%\n\n", \
+						testCount == 0 ? 0 : candidateCount / testCount, \
+						candidateCount == 0 ? 0 : (double)(candidateHitCount * 100) / (double)candidateCount, \
+						candidateCount == 0 ? 0 : (double)(candidateHit2Count * 100) / (double)candidateCount);
+					
 					TIMER.Reset();
 				}
 					
@@ -519,6 +532,7 @@ namespace Core
 					
 					double nDiff = GetPrimeDifficulty(CBigNum(pResponse.first + pResponse.second), 1);
 					printf("[MASTER] Share Found | Difficulty %f | Hash %s  --> [Accepted]\n", nDiff, pResponse.first.ToString().substr(0, 20).c_str());
+					totalShareWeight += pow(13.0, nDiff - 2.0);
 				}
 					
 					
@@ -651,10 +665,14 @@ namespace Core
 			if (mpz_probab_prime_p(zTempVar2, 0) > 0)
 				n1stPrimeSearchLimit = 12;
 			else
-			{
+//				continue;
+			{ //!!!!! 6
 				mpz_add_ui(zTempVar2, zTempVar, 20);
 				if (mpz_probab_prime_p(zTempVar2, 0) > 0)
-					n1stPrimeSearchLimit = 20;
+				{
+					candidateHit2Count++;
+					n1stPrimeSearchLimit = 12;
+				}
 				else
 					//{
 					//	mpz_add_ui(zTempVar2, zTempVar, 26);
@@ -664,15 +682,21 @@ namespace Core
 					//		continue;
 					//}
 					continue;
-
-
 			}
+			candidateHitCount++;
 
 			nStop = 0; nPrimeCount = 0; nLastOffset = 0; firstPrimeAt = -1;
 			double diff = 0;
-
+			
 			for (nStart = 0; nStart <= nStop + 12; nStart += 2)
 			{
+				if (nStart == 14 || nStart == 22)//|| nStart == 10 || nStart == 14 || nStart == 16 || nStart == 24)
+				{
+					mpz_add_ui(zTempVar, zTempVar, 2);
+					nLastOffset += 2;
+					continue;
+				}
+
 				if (mpz_probab_prime_p(zTempVar, 0) > 0)
 				{
 					nStop = nStart;
@@ -704,6 +728,7 @@ namespace Core
 				nonces->push_back(nNonce);
 			}
 		}
+		candidateCount += cx;
 		//if (nonces->size() > 0)
 		//	printf("Found %u %u+ tuples out of %u candidates\n", nonces->size(), nMinimumPrimeCount, cx);
 		return nPrimes;
@@ -726,8 +751,7 @@ namespace Core
 				std::vector<unsigned long>  nonces;
 				int64 nStartTime = GetTimeMicros();
 				nPrimes += find_tuples2(job.candidates, zPrimorial, job.zPrimeOrigin, job.zFirstSieveElement, 3, &nonces);
-				int64 nElapsedTime = GetTimeMicros() - nStartTime;
-				pTestTime += nElapsedTime;
+				pTestTime += (GetTimeMicros() - nStartTime);
 				testCount++;
 				pcJobQueuePassive.push(jobId);
 
@@ -807,38 +831,54 @@ int main(int argc, char *argv[])
 		ADDRESS = argv[3];		
 	}
 
-	int nThreads = GetTotalCores(), nTimeout = 10;
+	int nSieveThreads = GetTotalCores() - 1;
+	int nPTestThreads = GetTotalCores() + 1;
+	int nTimeout = 2;
 	
 	if(argc > 4)
 	{
-		nThreads = boost::lexical_cast<int>(argv[4]);
+		nSieveThreads = boost::lexical_cast<int>(argv[4]);
 	}
 	else
 	{
-		if (Config.nMiningThreads > 0)
+		if (Config.nSieveThreads > 0)
 		{
-			nThreads = Config.nMiningThreads ;
+			nSieveThreads = Config.nSieveThreads ;
 		}
 	}
 	
 	if(argc > 5)
 	{
-		nTimeout = boost::lexical_cast<int>(argv[5]);
+		nPTestThreads = boost::lexical_cast<int>(argv[5]);
 	}
 	else
 	{
-		if (Config.nMiningThreads > 0)
+		if (Config.nPTestThreads > 0)
 		{
-			nThreads = Config.nMiningThreads;
+			nPTestThreads = Config.nPTestThreads;
 		}
 	}
-			
+
+	if (argc > 6)
+	{
+		nTimeout = boost::lexical_cast<int>(argv[6]);
+	}
+	else
+	{
+		if (Config.nTimeout > 0)
+		{
+			nTimeout = Config.nTimeout;
+		}
+	}
+
+
 	printf("Nexus (Coinshield) Prime Pool Miner 1.0.1 - Created by Videlicet - Optimized by Supercomputing extended by paulscreen and hashtobewild \n");
 	printf("Using Supplied Account Address %s\n", ADDRESS.c_str());
 	printf("Initializing Miner \n");
 	printf("Host %s\n", IP.c_str());
 	printf("Port: %s\n", PORT.c_str());
-	printf("Threads: %i\n", nThreads);
+	printf("SieveThreads: %i\n", nSieveThreads);
+	printf("Prime Test Threads: %i\n", nPTestThreads);
 	printf("Timeout = %i\n\n", nTimeout);
 	
 	Core::InitializePrimes();
@@ -851,10 +891,15 @@ int main(int argc, char *argv[])
 	Core::nPrimeLimit = Config.nPrimeLimit ;
 	Core::nPrimorialEndPrime = Config.nPrimorialEndPrime ;
 
-	Core::ServerConnection MINERS(IP, PORT, nThreads, nTimeout);
+	Core::ServerConnection MINERS(IP, PORT, nSieveThreads, nPTestThreads, nTimeout);
 	
-	getchar();
-
+	do
+	{
+		char ch = getchar();
+		if (ch == 'q')
+			break;
+		printf("Enter 'q' to quit\n");
+	} while (true);
 	//loop { Sleep(10); }
 	
 	return 0;
