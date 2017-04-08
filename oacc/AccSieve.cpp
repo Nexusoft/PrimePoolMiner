@@ -6,7 +6,9 @@
 using namespace std;
 
 #include "AccSieve.h"
+#ifdef __PGI
 #include <openacc.h>
+#endif
 #include <bitset>
 
 // !!!!!!!!!!!
@@ -77,7 +79,7 @@ void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimori
 		unsigned int ssz = SIEVESIZE*sizeof(bool);
 
 #pragma acc enter data create(sieve[0:ssz])  create(indexes[0:SIEVETARGET+1][0:PRIMELIMIT*(SIEVETARGET+1)])
-		#pragma acc parallel loop present(sieve) device_type(nvidia)  gang num_gangs(256)  worker num_workers(8) vector_length(128)
+		#pragma acc parallel loop present(sieve) gang num_gangs(256)  worker num_workers(8) vector_length(128)
 		{
 			#pragma acc loop independent gang worker
 			for (size_t i = 0; i < SIEVESIZE; i++)
@@ -86,7 +88,7 @@ void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimori
 			}
 		}
 #pragma acc data copyin( primes[0:PRIMELIMIT], inverses[0:PRIMELIMIT], base_remainders[0:PRIMELIMIT], _offsets14Tuple1) 
-#pragma acc parallel loop present( indexes, primes,inverses,base_remainders)  device_type(nvidia)  gang num_gangs(128) worker num_workers(32) vector_length(32)
+#pragma acc parallel loop present( indexes, primes,inverses,base_remainders) gang num_gangs(128) worker num_workers(32) vector_length(32)
 		{
 			#pragma acc loop independent gang worker
 			for (unsigned int i = nPrimorialEndPrime; i < PRIMELIMIT; i++)
@@ -111,7 +113,7 @@ void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimori
 
 		}//ACC parallel
 
-#pragma acc parallel loop present(sieve, indexes) device_type(nvidia)  gang num_gangs(256) worker num_workers(128) vector_length(8)
+#pragma acc parallel loop present(sieve, indexes) gang num_gangs(256) worker num_workers(128) vector_length(8)
 		{			
 			#pragma acc loop independent gang worker			
 			for (unsigned int i = nPrimorialEndPrime *(SIEVETARGET + 1); i < PRIMELIMIT*(SIEVETARGET + 1); i++)
@@ -152,7 +154,7 @@ void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimori
 		} //ACC parallel
 
 /*
-#pragma acc parallel loop present(sieve, indexes) device_type(nvidia)  gang num_gangs(256)  worker num_workers(8) vector_length(128)
+#pragma acc parallel loop present(sieve, indexes) gang num_gangs(256)  worker num_workers(8) vector_length(128)
 		{
 			#pragma acc loop independent gang worker			
 			for (unsigned int i = nPrimorialEndPrime; i < PRIMELIMIT; i++)
@@ -180,7 +182,7 @@ void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimori
 		//	free(indexes[i]);
 		//}
 
-		#pragma acc parallel loop present (candidates, sieve) device_type(nvidia)  gang num_gangs(128)  worker num_workers(8)
+		#pragma acc parallel loop present (candidates, sieve) gang num_gangs(128)  worker num_workers(8)
 		{
 			cx = 0;
 #pragma acc loop independent worker
@@ -218,21 +220,17 @@ void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimori
 	free(base_remainders);
 }
 
+
+// CPU Sieve
 #ifdef __PGI
-void pgisieve_cpu(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+void pgisieve_cpu(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #else
-void pgisieve(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #endif
 {
-
-
 	mpz_t zPrimorialMod, zTempVar;
 	mpz_init(zPrimorialMod);
 	mpz_init(zTempVar);
-
-	sieveSize = SIEVESIZE * 32;
-
-	//const int sieveSizeBytes = sieveSize / 32;
 
 	mpz_mod(zPrimorialMod, zPrimeOrigin, zPrimorial);
 	mpz_sub(zPrimorialMod, zPrimorial, zPrimorialMod);
@@ -258,94 +256,67 @@ void pgisieve(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, m
 
 	int cx = 0;
 
-	 
-#pragma acc data //copyin(sieve[0:sieveSizeBytes])
-#pragma acc data copyout(candidates[0:MAXCANDIDATESPERSIEVE],cx)
+	unsigned int indexes[SIEVETARGET + 1][PRIMELIMIT];
+
+	// clear the bits
+	memset((wchar_t *)sieve1, 0x0, (sieveSize) / 8);
+
+	for (int pt = 0; pt < SIEVETARGET; pt++)
 	{
-		unsigned int indexes[SIEVETARGET + 1][PRIMELIMIT];
-		//unsigned int * indexes[SIEVETARGET + 1];
-
-		std::bitset<SIEVESIZE * 4 * 8> sieve(0);
-		
-#pragma acc enter data create(sieve[0:SIEVESIZE*4])  create(indexes[0:SIEVETARGET+1][0:PRIMELIMIT])
-
-		sieve.set();
-
-#pragma acc data copyin( primes[0:PRIMELIMIT], inverses[0:PRIMELIMIT], base_remainders[0:PRIMELIMIT], _offsets14Tuple1) 
-#pragma acc parallel loop present( indexes, primes,inverses,base_remainders)  device_type(nvidia)  gang num_gangs(SIEVETARGET) worker num_workers(256) //vector_length(32)
+		for (unsigned int i = nPrimorialEndPrime; i < PRIMELIMIT; i++)
 		{
-#pragma acc loop independent gang
-			for (int pt = 0; pt < SIEVETARGET; pt++)
-			{
-#pragma acc loop independent worker
-				for (unsigned int i = nPrimorialEndPrime; i < PRIMELIMIT; i++)
-				{
-					unsigned long p = primes[i];
-					indexes[0][i] = (unsigned int)p;
-					unsigned int inv = inverses[i];
-					unsigned int base_remainder = base_remainders[i];
-					//#pragma acc loop device_type(nvidia) vector
+			unsigned long p = primes[i];
+			indexes[0][i] = (unsigned int)p;
+			unsigned int inv = inverses[i];
+			unsigned int base_remainder = base_remainders[i];
 
-					unsigned int remainder = base_remainder + _offsets14Tuple1[pt];
-					if (p < remainder)
-						remainder -= p;
-					unsigned long r = (p - remainder)*inv;
-					unsigned int idx = r % p;
-					indexes[pt + 1][i] = idx;
+			unsigned int remainder = base_remainder + _offsets14Tuple1[pt];
+			if (p < remainder)
+				remainder -= p;
+			unsigned long r = (p - remainder)*inv;
+			unsigned int idx = r % p;
+			indexes[pt + 1][i] = idx;
+		}
+	}
+
+	for (unsigned int i = nPrimorialEndPrime; i < PRIMELIMIT; i++)
+	{
+		unsigned long  p = indexes[0][i];
+		int lc = (sieveSize / p) + 1;
+		for (int l = 0; l < lc; l++)
+		{
+			for (int pt = SIEVETARGET; pt >= 1; pt--)
+			{
+				unsigned int idx = indexes[pt][i] + l*p;
+				if (idx < sieveSize)
+				{
+					sieve1[(idx) >> 6] |= (1ULL << ((idx) & 63));					
 				}
 			}
-		}//ACC parallel
+		}
+	}
 
-
-//#pragma acc parallel loop present(sieve, indexes) device_type(nvidia)  gang num_gangs(128)  worker num_workers(64) vector_length(16)
+	for (size_t i = 0; i < sieveSize / 64; i++)
+	{
+		if(sieve1[i] == 0xFFFFFFFFFFFFFFFF)
+			continue;
+		for (size_t p = 0; p < 64; p++)
 		{
-//#pragma acc loop independent gang worker //cache (indexes[pt]) //collapse(2) 
-				for (unsigned int i = nPrimorialEndPrime; i < PRIMELIMIT; i++)
-				{
-					unsigned long  p = indexes[0][i];
-					int lc = (sieveSize / p) + 1;
-//#pragma acc loop independent vector	
-					for (int l = 0; l < lc; l++)
-					{
-						//#pragma acc loop independent seq
-						for (int pt = SIEVETARGET; pt >= 1; pt--)
-						{
-							unsigned int idx = indexes[pt][i] + l*p;
-							if (idx < sieveSize)
-							{
-								//sieve[(idx) >> 3] |= (1 << ((idx) & 7));
-								sieve[idx] = 0;
-							}
-						}
-					}
-				}
-			
-		} //ACC parallel 
+			if(sieve1[i] & (1ULL << p))
+				continue;
 
-//#pragma acc parallel loop present (candidates, sieve) device_type(nvidia)  gang num_gangs(128)  worker num_workers(8)
-		{
-			cx = 0;
-//#pragma acc loop independent worker
-			for (int i = sieve._Find_first(); i < sieve.size(); i = sieve._Find_next(i))
-			{
-				candidates[cx] = i;
-				if (cx < MAXCANDIDATESPERSIEVE) cx++;
-			}
-		}  // ACC parallel
-#pragma acc exit data
-#pragma acc data copyout(cx)
-
-
-	} // ACC data
+			candidates[cx] = i * 64 + p;
+			if (cx < MAXCANDIDATESPERSIEVE) cx++;
+		}
+	}
 	candidates[cx] = -1;
-
 	free(base_remainders);
 }
 
 #ifdef __PGI
-void pgisieve(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #else
-void pgisieve_gpu(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+void pgisieve_GPU(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #endif
 {
 
@@ -389,14 +360,14 @@ void pgisieve_gpu(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimoria
 		uint8_t sieve[SIEVESIZE*4];
 
 #pragma acc enter data create(sieve[0:SIEVESIZE*4])  create(indexes[0:SIEVETARGET+1][0:PRIMELIMIT])
-#pragma acc parallel loop present(sieve) device_type(nvidia)  gang num_gangs(256)  worker num_workers(8) vector_length(128)
+#pragma acc parallel loop present(sieve) gang num_gangs(256)  worker num_workers(8) vector_length(128)
 		for (size_t i = 0; i < SIEVESIZE*4; i++)
 		{
 			sieve[i] = 0x0;
 		}
 
 #pragma acc data copyin( primes[0:PRIMELIMIT], inverses[0:PRIMELIMIT], base_remainders[0:PRIMELIMIT], _offsets14Tuple1) 
-#pragma acc parallel loop present( indexes, primes,inverses,base_remainders)  device_type(nvidia)  gang num_gangs(SIEVETARGET) worker num_workers(256) //vector_length(32)
+#pragma acc parallel loop present( indexes, primes,inverses,base_remainders) gang num_gangs(SIEVETARGET) worker num_workers(256) //vector_length(32)
 		{
 #pragma acc loop independent gang
 			for (int pt = 0; pt < SIEVETARGET; pt++)
@@ -420,7 +391,7 @@ void pgisieve_gpu(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimoria
 		}//ACC parallel
 
 
-#pragma acc parallel loop present(sieve, indexes) device_type(nvidia)  gang num_gangs(128)  worker num_workers(64) vector_length(16)
+#pragma acc parallel loop present(sieve, indexes) gang num_gangs(128)  worker num_workers(64) vector_length(16)
 		{
 			//#pragma acc loop independent gang
 			for (int pt = SIEVETARGET; pt >= 1; pt--)
@@ -447,7 +418,7 @@ void pgisieve_gpu(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimoria
 			}
 		} //ACC parallel 
 
-#pragma acc parallel loop present (candidates, sieve) device_type(nvidia)  gang num_gangs(128)  worker num_workers(8)
+#pragma acc parallel loop present (candidates, sieve) gang num_gangs(128)  worker num_workers(8)
 		{
 			cx = 0;
 #pragma acc loop independent worker
@@ -655,7 +626,7 @@ void check_candidates(unsigned int * sieve, unsigned int sieveSize, mpz_t zPrimo
 		}
 	}
 	if (candidates->size() > 0)
-		printf("acc candidates %u out of  %u\n", candidates->size(), cx);
+		printf("acc candidates %lu out of %u\n", candidates->size(), cx);
 
 }
 

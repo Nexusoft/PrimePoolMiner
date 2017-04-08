@@ -74,19 +74,20 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <NMakeIncludeSearchPath>C:\deps62\gmp-6.1.1\;c:\deps62\boost_1_62_0</NMakeIncludeSearchPath>
-    <RemoteBuildCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile</RemoteBuildCommandLine>
-    <RemoteReBuildCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile clean;make -f $(RemoteProjectDir)/makefile</RemoteReBuildCommandLine>
+    <RemoteBuildCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile DEBUG=TRUE</RemoteBuildCommandLine>
+    <RemoteReBuildCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile clean;make -f $(RemoteProjectDir)/makefile DEBUG=TRUE</RemoteReBuildCommandLine>
     <RemoteCleanCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile clean</RemoteCleanCommandLine>
     <RemoteBuildOutputs>$(RemoteProjectDir)/nexus_cpuminer</RemoteBuildOutputs>
+    <LocalRemoteCopySources>true</LocalRemoteCopySources>
   </PropertyGroup>
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="config.cpp" />
-    <ClCompile Include="hash\Keccak-compact64.c" />
-    <ClCompile Include="hash\KeccakDuplex.c" />
-    <ClCompile Include="hash\KeccakHash.c" />
-    <ClCompile Include="hash\KeccakSponge.c" />
+    <ClCompile Include="hash\Keccak-compact64.cpp" />
+    <ClCompile Include="hash\KeccakDuplex.cpp" />
+    <ClCompile Include="hash\KeccakHash.cpp" />
+    <ClCompile Include="hash\KeccakSponge.cpp" />
     <ClCompile Include="hash\skein.cpp" />
     <ClCompile Include="hash\skein_block.cpp" />
     <ClCompile Include="miner.cpp" />

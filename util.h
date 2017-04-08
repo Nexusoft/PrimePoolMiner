@@ -6,7 +6,11 @@
 #include "bignum.h"
 
 #if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
-	typedef int pid_t;
+#include <conio.h>
+#include <time.h>
+typedef int pid_t;
+#define aligned_alloc(a, s)		malloc(s)
+#define gmtime_r(now, tm_time)		_gmtime64_s(tm_time, now)
 #elif !defined __MINGW32__
 	#include <sys/types.h>
 	#include <sys/time.h>
@@ -123,5 +127,8 @@ inline int64 GetTimeMicros()
 	return (boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time()) - boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1))).total_microseconds();
 }
 
+void SetCurrentThreadPriority(int priority = INT32_MAX);
+
+void SetThreadPriority(pthread_t threadID, int priority);
 
 #endif

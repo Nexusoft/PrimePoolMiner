@@ -15,7 +15,7 @@ namespace Core
 	unsigned int *primes;
 	unsigned int *inverses;
 
-	unsigned int nBitArray_Size =  1024*1024*36;
+	unsigned int nBitArray_Size =  1024*1024*10;
 	mpz_t  zPrimorial;
 
 	unsigned int prime_limit = 71378571;
@@ -153,7 +153,7 @@ namespace Core
 			int	inv = mpz_invert(zResult, zPrimorial, zPrime);
 			if (inv <= 0)
 			{
-				printf("\nNo Inverse for prime %u at position %u\n\n", zPrime, i);
+				printf("\nNo Inverse for prime %u at position %u\n\n", primes[i], i);
 				exit(0);
 			}
 			else
@@ -251,7 +251,7 @@ namespace Core
 				PRIMES.push_back(nIndex);
 
 		
-		printf("bit_array_sieve of Eratosthenes Generated %i Primes.\n", PRIMES.size());
+		printf("bit_array_sieve of Eratosthenes Generated %lu Primes.\n", PRIMES.size());
 		
 		return PRIMES;
 	}
