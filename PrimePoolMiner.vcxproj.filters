@@ -116,5 +116,9 @@
     <None Include="build\.gitkeep" />
     <None Include="miner.conf.example" />
     <None Include="miner.conf" />
+    <None Include="soloMining.bat">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="soloMining.sh" />
   </ItemGroup>
 </Project>

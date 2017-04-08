@@ -120,6 +120,8 @@
     <None Include="makefile" />
     <None Include="miner.conf" />
     <None Include="miner.conf.example" />
+    <None Include="soloMining.bat" />
+    <None Include="soloMining.sh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
