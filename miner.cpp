@@ -52,6 +52,8 @@ namespace Core
 			{
 				/** Keep thread at idle CPU usage if waiting to submit or recieve block. **/
 				Sleep(1);
+				if (exitSignal)
+					break;
 
 				/** Assure that this thread stays idle when waiting for new block, or share submission. **/
 				//if (fNewBlock || fBlockWaiting || !fNewBlockRestart)
@@ -401,7 +403,7 @@ namespace Core
 					Sleep(1);
 					break;
 				}
-				SetThreadPriority(THREADS[nIndex]->THREAD.native_handle(), 32);
+				SetThreadPriority(THREADS[nIndex]->THREAD.native_handle(), 2);
 			}
 		} while (allMinerThreadsAreActive == false);
 #endif
@@ -427,7 +429,11 @@ namespace Core
 			{
 			/** Run this thread at 100 Cycles per Second. **/
 			Sleep(10);
-
+			if (exitSignal)
+			{
+				CLIENT->Disconnect();
+				break;
+			}
 
 			/** Attempt with best efforts to keep the Connection Alive. **/
 			if (!CLIENT->Connected() || CLIENT->Errors() || CLIENT->Timeout(30))
@@ -470,9 +476,13 @@ namespace Core
 			/** Rudimentary Meter **/
 			if (TIMER.Elapsed() >= 5)
 			{
+				double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
+				double WPS = 1.0 * std::accumulate(vWPSValues.begin(), vWPSValues.end(), 0LL) / vWPSValues.size();;
+
+				if (!bSoloMining)
+					CLIENT->SubmitPPS(PPS, WPS);
+
 				//PrintStats();
-				//if (!bSoloMining)
-				//	CLIENT->SubmitPPS(PPS, WPS);
 				TIMER.Reset();
 			}
 
@@ -656,8 +666,9 @@ namespace Core
 			try
 			{
 				Sleep(5000);
-				PrintStats();
-				
+				if (exitSignal)
+					break;
+				PrintStats();				
 			}
 			catch (const std::exception&)
 			{
@@ -669,6 +680,27 @@ namespace Core
 	void ServerConnection::SoloServerThread()
 	{
 		SetThreadPriority(THREAD.native_handle(), 32);
+
+#ifdef __PGI
+		// when using OpenACC the sieave thread is not CPU intensive but needs high priority to provide continous job for the GPU
+		bool allMinerThreadsAreActive = false;
+		do
+		{
+			allMinerThreadsAreActive = true;
+			for (int nIndex = 0; nIndex < THREADS.size(); nIndex++)
+			{
+				if (THREADS[nIndex] == NULL || THREADS[nIndex]->THREAD.native_handle() == 0)
+				{
+					allMinerThreadsAreActive = false;
+					printf("Waiting for miner threads\n");
+					Sleep(1);
+					break;
+				}
+				SetThreadPriority(THREADS[nIndex]->THREAD.native_handle(), 2);
+			}
+		} while (allMinerThreadsAreActive == false);
+#endif
+
 
 		/** Don't begin until all mining threads are Created. **/
 		//while(THREADS.size() != nThreads)
@@ -715,7 +747,7 @@ namespace Core
 				}
 
 				unsigned int nHeight = CLIENT->GetHeight();
-				if (nHeight == 0)
+				if (nHeight == 0 || nHeight < 10)
 				{
 					printf("Failed to Update Height...\n");
 					CLIENT->Disconnect();
@@ -836,6 +868,7 @@ namespace Core
 					else
 					{
 						printf("<DEBUG> Got an invalid BLOCK\n");
+						CLIENT->Disconnect();
 						Sleep(100);
 					}
 				}
@@ -863,6 +896,7 @@ namespace Core
 		double TPS = (double)testCount / (double)SecondsElapsed;
 		double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
 		double WPS = 1.0 * std::accumulate(vWPSValues.begin(), vWPSValues.end(), 0LL) / vWPSValues.size();;
+
 		struct tm t;
 		time_t aclock = SecondsElapsed;
 		gmtime_r(&aclock, &t);
@@ -905,7 +939,7 @@ namespace Core
 		printf("AVG Time Sieve: %llu | PTest: %llu | Siv/s: %-7.03f | Tst/s: %-7.03f", avgSieveTime, testCount == 0 ? 0 : pTestTime / testCount, SPS, TPS);
 		if (!bSoloMining)
 			printf(" | Shares: %llu | Shr/h: %-7.03f | TotalShareValue: %llu | ShrVal/h: %-5.02fK", shareCount, sharePerH, totalShareWeight, shareWeightPerH);
-		printf("\nAvgCandCnt: %u - CandHit : %-2.02f%% 2nd : %-2.02f%%", \
+		printf("\nAvgCandCnt: %llu - CandHit : %-2.02f%% 2nd : %-2.02f%%", \
 			testCount == 0 ? 0 : candidateCount / testCount, \
 			candidateCount == 0 ? 0 : (double)(candidateHitCount * 100) / (double)candidateCount, \
 			candidateCount == 0 ? 0 : (double)(candidateHit2Count * 100) / (double)candidateCount);
@@ -937,13 +971,13 @@ namespace Core
 			unsigned long nLastOffset = 0;
 			int firstPrimeAt = -1;
 
-			mpz_add_ui(zTempVar2, zTempVar, 18);
+			mpz_add_ui(zTempVar2, zTempVar, 20);
 			if (mpz_probab_prime_p(zTempVar2, 0) > 0)
-				n1stPrimeSearchLimit = 12;
+				n1stPrimeSearchLimit = 18;
 			else
 				//				continue;
 			{ //!!!!! 6
-				mpz_add_ui(zTempVar2, zTempVar, 20);
+				mpz_add_ui(zTempVar2, zTempVar, 18);
 				if (mpz_probab_prime_p(zTempVar2, 0) > 0)
 				{
 					candidateHit2Count++;
@@ -1016,10 +1050,12 @@ namespace Core
 		//printf("Starting Prime test thread!\n");
 		loop
 		{
+			if (exitSignal)
+				break;
 			int jobId = 0;
 			if (pcJobQueueActive.pop(jobId))
 			{
-
+				
 				//printf("got job id %u on thread %u\n", jobId, boost::this_thread::get_id());
 				if (bBlockSubmission)
 				{
@@ -1203,7 +1239,7 @@ int main(int argc, char *argv[])
 	Core::nPrimeLimit = Config.nPrimeLimit;
 	Core::nPrimorialEndPrime = Config.nPrimorialEndPrime;
 
-	Core::ServerConnection MINERS(IP, PORT, nSieveThreads, nPTestThreads, nTimeout, bSoloMining);
+	Core::ServerConnection * MINERS = new Core::ServerConnection(IP, PORT, nSieveThreads, nPTestThreads, nTimeout, bSoloMining);
 
 	do
 	{
@@ -1215,6 +1251,8 @@ int main(int argc, char *argv[])
 	//loop { Sleep(10); }
 	exitSignal = true;
 	printf("Quitting !!!\n");
+	Sleep(1000);
+	delete MINERS;
 	Sleep(500);
 	return 0;
 }

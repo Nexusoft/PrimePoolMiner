@@ -118,7 +118,9 @@
   <ItemGroup>
     <None Include="build\.gitkeep" />
     <None Include="makefile" />
-    <None Include="miner.conf" />
+    <None Include="miner.conf">
+      <RemoteCopyFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</RemoteCopyFile>
+    </None>
     <None Include="miner.conf.example" />
     <None Include="soloMining.bat" />
     <None Include="soloMining.sh" />

@@ -112,8 +112,9 @@ void SetThreadPriority(pthread_t threadID, int priority)
 	{
 		errno = retcode;
 		perror("pthread_setschedparam");
-		printf("Try executing with sudo!");
+		printf("\n!!! FAILED to set thread priority. For the best performance try executing with 'sudo ./nexus_cpuminer' !!!\n\n");
 		//exit(EXIT_FAILURE);
+		return;
 	}
 
 	std::cout << "Thred ("<< threadID << ") priority CHANGED: ";
