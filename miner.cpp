@@ -528,8 +528,8 @@ namespace Core
 
 				double nDiff = GetPrimeDifficulty(CBigNum(pResponse.first + pResponse.second), 1);
 				printf("[MASTER] Share Found | Difficulty %f | Hash %s  --> [Accepted]\n", nDiff, pResponse.first.ToString().substr(0, 20).c_str());
-				totalShareWeight += pow(13.0, nDiff - 2.0);
-				//totalShareWeight += pow(25.0, nDiff - 3.0); //For better share rewards that pools should implement
+				//totalShareWeight += pow(13.0, nDiff - 2.0);
+				totalShareWeight += pow(25.0, floor(nDiff) - 3.0); //For better share rewards that pools should implement
 			}
 
 
@@ -971,17 +971,17 @@ namespace Core
 			unsigned long nLastOffset = 0;
 			int firstPrimeAt = -1;
 
-			mpz_add_ui(zTempVar2, zTempVar, 20);
+			mpz_add_ui(zTempVar2, zTempVar, 18);
 			if (mpz_probab_prime_p(zTempVar2, 0) > 0)
-				n1stPrimeSearchLimit = 18;
+				n1stPrimeSearchLimit = 12;
 			else
 				//				continue;
 			{ //!!!!! 6
-				mpz_add_ui(zTempVar2, zTempVar, 18);
+				mpz_add_ui(zTempVar2, zTempVar, 20);
 				if (mpz_probab_prime_p(zTempVar2, 0) > 0)
 				{
 					candidateHit2Count++;
-					n1stPrimeSearchLimit = 12;
+					n1stPrimeSearchLimit = 18;
 				}
 				else
 					//{
