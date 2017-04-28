@@ -16,3 +16,5 @@
 *.dll
 *.exe
 *.zip
+/obj/x64/Release
+*.stackdump

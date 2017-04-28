@@ -24,6 +24,7 @@ namespace Core
 		primeLimit = 71378571;
 		nPrimeLimit = 4194304;
 		nPrimorialEndPrime = 12;
+		bExperimental = ture;
 	}
 
 	void MinerConfig::PrintConfig()
@@ -116,6 +117,15 @@ namespace Core
 			}
 			catch(...)
 			{}
+
+			try
+			{
+				bExperimental = root.get<bool>("experimental");
+			}
+			catch (...)
+			{
+			}
+
 		}
 		catch(...)
 		{

@@ -80,6 +80,13 @@
     <RemoteBuildOutputs>$(RemoteProjectDir)/nexus_cpuminer</RemoteBuildOutputs>
     <LocalRemoteCopySources>true</LocalRemoteCopySources>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NMakeIncludeSearchPath>C:\deps62\gmp-6.1.1\;c:\deps62\boost_1_62_0</NMakeIncludeSearchPath>
+    <RemoteBuildCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile -j8</RemoteBuildCommandLine>
+    <RemoteReBuildCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile clean;make -f $(RemoteProjectDir)/makefile -j8</RemoteReBuildCommandLine>
+    <RemoteCleanCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile clean</RemoteCleanCommandLine>
+    <RemoteBuildOutputs>$(RemoteProjectDir)/nexus_cpuminer</RemoteBuildOutputs>
+  </PropertyGroup>
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -116,10 +123,12 @@
     <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="build.sh" />
     <None Include="build\.gitkeep" />
     <None Include="makefile" />
     <None Include="miner.conf">
-      <RemoteCopyFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</RemoteCopyFile>
+      <RemoteCopyFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</RemoteCopyFile>
+      <RemoteCopyFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</RemoteCopyFile>
     </None>
     <None Include="miner.conf.example" />
     <None Include="soloMining.bat" />

@@ -120,5 +120,6 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="soloMining.sh" />
+    <None Include="build.sh" />
   </ItemGroup>
 </Project>

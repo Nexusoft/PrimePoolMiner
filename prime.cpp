@@ -7,7 +7,7 @@
 *******************************************************************************************/
 
 #include "core.h"
-
+#include <map>
 using namespace std;
 
 namespace Core
@@ -15,7 +15,7 @@ namespace Core
 	unsigned int *primes;
 	unsigned int *inverses;
 
-	unsigned int nBitArray_Size =  1024*1024*10;
+	unsigned int nBitArray_Size =  1024*1024*8;
 	mpz_t  zPrimorial;
 
 	unsigned int prime_limit = 71378571;
@@ -137,7 +137,7 @@ namespace Core
 		int nSize = mpz_sizeinbase(zPrimorial,2);
 		printf("\nPrimorial Size = %d-bit\n\n", nSize);
 
-		inverses=(unsigned int *) malloc((nPrimeLimit+1)*sizeof(unsigned int));
+		inverses=(unsigned int *) malloc((nPrimeLimit+1)*sizeof(unsigned int));	
 		memset(inverses, 0, (nPrimeLimit+1) * sizeof(unsigned int));
 
 		mpz_t zPrime, zInverse, zResult;
@@ -164,7 +164,214 @@ namespace Core
 
 
 	}
+
+	static uint32_t _offsets14Tuple1[14] = { 0, 2, 6, 8, 12, 18, 20, 26, 30, 32, 36, 42, 48, 50 };
+
+#define PRIMELIMIT 16384 * 48
+#define PRIMELIMIT1 16384 * 14
+#define SIEVETARGET 10
+#define SIEVETARGETSTART 5
 	
+#define MAXCHAIN 5
+#define STARTOFFSET 0
+#define MAX_PRIMES	8000
+#define STOPRANK 3
+	unsigned char fastModPrimeChecks(unsigned int n, unsigned int * base_remainders)
+	{
+		unsigned char rank = MAXCHAIN - STARTOFFSET;
+		unsigned char pChainMap[MAXCHAIN];
+		for (int j = STARTOFFSET; j < MAXCHAIN; j++)
+			pChainMap[j] = 1;
+
+		for (int i = 1; i < MAX_PRIMES; i++)
+		{
+			int p = primes[i];
+
+			uint64_t idx = base_remainders[i] + (zPrimorial->_mp_d[0] * (uint64_t)n);
+			for (int j = STARTOFFSET; j < MAXCHAIN; j++)
+			{
+				if (pChainMap[j] == 1)
+				{
+					unsigned int mod = (idx + _offsets14Tuple1[j]) % (uint64_t)p;
+					if (mod == 0)
+					{
+						pChainMap[j] = 0;
+						//rank = rank - STARTOFFSET * (j- STARTOFFSET+1);
+						rank--;
+						if (rank <= STOPRANK)
+							return rank;
+					}
+				}
+			}
+		}
+
+		return rank;
+	}
+
+	
+	//struct Cmp
+	//{
+	bool comparer(const pair<unsigned int, unsigned char> &a, const pair<unsigned int, unsigned char> &b)
+	{
+		return a.second > b.second;
+	}
+	//};
+
+	void cpusieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+	{
+		mpz_t zPrimorialMod, zTempVar;
+		mpz_init(zPrimorialMod);
+		mpz_init(zTempVar);
+
+		mpz_mod(zPrimorialMod, zPrimeOrigin, zPrimorial);
+		mpz_sub(zPrimorialMod, zPrimorial, zPrimorialMod);
+
+		mpz_mod(zPrimorialMod, zPrimorialMod, zPrimorial);
+
+#if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
+		mpz_import(zOctuplet, 1, 1, sizeof(octuplet_origins[j]), 0, 0, &ktuple_origin);
+		mpz_add(zPrimorialMod, zPrimorialMod, zOctuplet);
+#else
+		mpz_add_ui(zPrimorialMod, zPrimorialMod, ktuple_origin);
+#endif
+
+		mpz_add(zTempVar, zPrimeOrigin, zPrimorialMod);
+		mpz_set(*zFirstSieveElement, zTempVar);
+		unsigned int * base_remainders = (unsigned int *)malloc(PRIMELIMIT * sizeof(unsigned int));
+
+		for (unsigned int i = 0; i < PRIMELIMIT; i++)
+		{
+			unsigned long  p = primes[i];
+			base_remainders[i] = mpz_tdiv_ui(zTempVar, p);
+		}
+
+		int cx = 0;
+
+		//unsigned int indexes[SIEVETARGET][PRIMELIMIT1];
+
+		// clear the bits
+		memset((wchar_t *)sieve1, 0x0, (sieveSize) / 8);
+
+		//for (int pt = SIEVETARGETSTART; pt < SIEVETARGET; pt++)
+		//{
+		//	for (unsigned int i = nPrimorialEndPrime; i < PRIMELIMIT1; i++)
+		//	{
+		//		unsigned long p = primes[i];
+		//		unsigned int inv = inverses[i];
+		//		unsigned int base_remainder = base_remainders[i];
+
+		//		unsigned int remainder = base_remainder + _offsets14Tuple1[pt];
+		//		if (p < remainder)
+		//			remainder -= p;
+		//		unsigned long r = (p - remainder)*inv;
+		//		unsigned int idx = r % p;
+		//		indexes[pt][i] = idx;
+		//	}
+		//}
+
+
+		for (unsigned int i = nPrimorialEndPrime; i < PRIMELIMIT1; i++)
+		{
+			unsigned long  p = primes[i];
+			unsigned int inv = inverses[i];
+			unsigned int base_remainder = base_remainders[i];
+
+			
+			int lc = (sieveSize / p) + 1;
+			for (int l = 0; l < lc; l++)
+			{
+				uint lp = l*(uint)p;
+				for (int pt = SIEVETARGETSTART; pt < SIEVETARGET; pt++)
+				{
+					//unsigned int idx = indexes[pt][i] + lp;
+					unsigned int remainder = base_remainder + _offsets14Tuple1[pt];
+					if (p < remainder)
+						remainder -= p;
+					unsigned long r = (p - remainder)*inv;
+					unsigned int idx = (r % p) + lp;
+
+					if (idx < sieveSize)
+					{
+						sieve1[(idx) >> 6] |= (1ULL << ((idx) & 63));
+					}
+				}
+			}
+
+
+		
+
+		}
+
+		//Sieve extension
+
+		for (unsigned int i = PRIMELIMIT1; i < PRIMELIMIT; i++)
+		{
+			unsigned long  p = primes[i];
+			unsigned int inv = inverses[i];
+			unsigned int base_remainder = base_remainders[i];
+
+			int lc = (sieveSize / primes[i]) + 1;
+			unsigned int remainder = base_remainder + _offsets14Tuple1[5];
+
+			if (p < remainder)
+				remainder -= p;
+			unsigned long r = (p - remainder)*inv;
+			unsigned int idx = r % p;
+
+			for (int l = 0; l < lc; l++)
+			{
+				uint lp = l*(uint)p;
+				uint idxlp = idx + lp;
+				if (idxlp < sieveSize)
+					sieve1[(idxlp) >> 6] |= (1ULL << ((idxlp) & 63));
+			}
+
+			remainder = base_remainder + _offsets14Tuple1[6];
+			if (p < remainder)
+				remainder -= p;
+			r = (p - remainder)*inv;
+			idx = r % p;
+
+			for (int l = 0; l < lc; l++)
+			{
+				uint lp = l*(uint)p;
+				uint idxlp = idx + lp;
+				if (idxlp < sieveSize)
+					sieve1[(idxlp) >> 6] |= (1ULL << ((idxlp) & 63));
+			}
+		}
+
+		std::list<std::pair<unsigned int, unsigned char>> mapCand;
+
+		for (unsigned int i = 0U; i < sieveSize / 64U; i++)
+		{
+			if (sieve1[i] == 0xFFFFFFFFFFFFFFFF)
+				continue;
+			for (unsigned int p = 0U; p < 64U; p++)
+			{
+				if (sieve1[i] & (1ULL << p))
+					continue;
+				unsigned int idx = i * 64U + p;
+				unsigned char rank = fastModPrimeChecks(idx, base_remainders);
+				mapCand.push_back(std::pair<unsigned int, unsigned char>(idx, rank));
+			}
+		}
+		sieveCandidateCount += mapCand.size();
+		mapCand.sort(comparer);
+		for (auto it = mapCand.begin(); it != mapCand.end(); ) 
+		{			
+			candidates[cx] = it->first;
+			cx++;
+			if (cx >= 200)
+				break;
+			++it;
+		}
+
+		candidates[cx] = -1;
+		free(base_remainders);
+	}
+
+
 	/** Convert Double to unsigned int Representative. Used for encoding / decoding prime difficulty from nBits. **/
 	unsigned int SetBits(double nDiff)
 	{

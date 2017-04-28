@@ -387,6 +387,9 @@ namespace LLP
 #define MAX_PRIME_TEST_JOBQUEUE_SIZE 1000
 #define MAX_SIEVE_JOBQUEUE_SIZE 256
 
+extern volatile uint64 sieveCandidateCount;
+extern bool bUseExperimentalSieve;
+
 namespace Core
 {
 	class ServerConnection;
@@ -449,6 +452,8 @@ namespace Core
 	CBigNum FermatTest(CBigNum n, CBigNum a);
 	bool Miller_Rabin(CBigNum n, int checks);
 	
+	void cpusieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
+
 
 	/** Class to hold the basic data a Miner will use to build a Block.
 		Used to allow one Connection for any amount of threads. **/

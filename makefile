@@ -12,7 +12,7 @@ ifeq ($(findstring CYGWIN_NT, $(UNAME)), CYGWIN_NT)
 OBJ	= obj
 EXE	= .exe
 DLL = .dll
-LDFLAGS += -Wl,--stack,20000000
+LDFLAGS += -Wl,--stack,100000000
 endif
 
 
@@ -43,7 +43,9 @@ $(info $(DEBUG))
 ifeq ($(DEBUG),TRUE)
 	CXXFLAGS=-ggdb -ffunction-sections -O0
 else
-	CXXFLAGS=-Ofast -mtune=core2 -march=core2 
+	CXXFLAGS=-Ofast -mtune=core2 -march=core2
+#	CXXFLAGS=-Ofast -mtune=ivybridge -march=ivybridge -mavx -fabi-version=0
+#	CXXFLAGS=-Ofast -march=broadwell -march=broadwell -mavx2 -fabi-version=0  
 endif
 
 xCXXFLAGS= -std=gnu++11 -pthread -m64 -static-libgcc -static-libstdc++ -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security $(DEBUGFLAGS) $(DEFS) $(CXXFLAGS) $(MARCHFLAGS)

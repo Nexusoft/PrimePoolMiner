@@ -33,6 +33,7 @@ namespace Core
         unsigned int primeLimit;
         unsigned int nPrimeLimit;
         unsigned int nPrimorialEndPrime;	
+		bool bExperimental;
 
 
 
