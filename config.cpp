@@ -24,7 +24,7 @@ namespace Core
 		primeLimit = 71378571;
 		nPrimeLimit = 4194304;
 		nPrimorialEndPrime = 12;
-		bExperimental = ture;
+		bExperimental = true;
 	}
 
 	void MinerConfig::PrintConfig()
