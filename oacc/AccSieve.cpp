@@ -32,7 +32,7 @@ static uint32_t _offsets14Tuple1[14] = { 0, 2, 6, 8, 12, 18, 20, 26, 30, 32, 36,
 static uint32_t _offsets24Tuple1[24] = { 0, 4, 6, 10, 16, 18, 24, 28, 30, 34, 40, 48, 54, 58, 60, 66, 70, 76, 84, 88, 90, 94, 96, 100 };
 
 
-void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 {
 
 	mpz_t zPrimorialMod, zTempVar;
@@ -49,8 +49,10 @@ void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimori
 	mpz_mod(zPrimorialMod, zPrimorialMod, zPrimorial);
 
 #if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
-	mpz_import(zOctuplet, 1, 1, sizeof(octuplet_origins[j]), 0, 0, &ktuple_origin);
-	mpz_add(zPrimorialMod, zPrimorialMod, zOctuplet);
+	mpz_t zKTuplet;
+	mpz_init(zKTuplet);
+	mpz_import(zKTuplet, 1, 1, sizeof(ktuple_origin), 0, 0, &ktuple_origin);
+	mpz_add(zPrimorialMod, zPrimorialMod, zKTuplet);
 #else
 	mpz_add_ui(zPrimorialMod, zPrimorialMod, ktuple_origin);
 #endif
@@ -223,9 +225,9 @@ void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimori
 
 // CPU Sieve
 #ifdef __PGI
-void pgisieve_cpu(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+void pgisieve_cpu(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #else
-void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #endif
 {
 	mpz_t zPrimorialMod, zTempVar;
@@ -238,8 +240,10 @@ void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t
 	mpz_mod(zPrimorialMod, zPrimorialMod, zPrimorial);
 
 #if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
-	mpz_import(zOctuplet, 1, 1, sizeof(octuplet_origins[j]), 0, 0, &ktuple_origin);
-	mpz_add(zPrimorialMod, zPrimorialMod, zOctuplet);
+	mpz_t zKTuplet;
+	mpz_init(zKTuplet);
+	mpz_import(zKTuplet, 1, 1, sizeof(ktuple_origin), 0, 0, &ktuple_origin);
+	mpz_add(zPrimorialMod, zPrimorialMod, zKTuplet);
 #else
 	mpz_add_ui(zPrimorialMod, zPrimorialMod, ktuple_origin);
 #endif
@@ -314,9 +318,9 @@ void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t
 }
 
 #ifdef __PGI
-void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #else
-void pgisieve_GPU(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+void pgisieve_GPU(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #endif
 {
 
@@ -333,8 +337,10 @@ void pgisieve_GPU(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, m
 	mpz_mod(zPrimorialMod, zPrimorialMod, zPrimorial);
 
 #if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
-	mpz_import(zOctuplet, 1, 1, sizeof(octuplet_origins[j]), 0, 0, &ktuple_origin);
-	mpz_add(zPrimorialMod, zPrimorialMod, zOctuplet);
+	mpz_t zKTuplet;
+	mpz_init(zKTuplet);
+	mpz_import(zKTuplet, 1, 1, sizeof(ktuple_origin), 0, 0, &ktuple_origin);
+	mpz_add(zPrimorialMod, zPrimorialMod, zKTuplet);
 #else
 	mpz_add_ui(zPrimorialMod, zPrimorialMod, ktuple_origin);
 #endif

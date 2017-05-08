@@ -10,10 +10,11 @@
 #include <map>
 using namespace std;
 
+
 namespace Core
 {
-	unsigned int *primes;
-	unsigned int *inverses;
+	unsigned long *primes;
+	unsigned long *inverses;
 
 	unsigned int nBitArray_Size =  1024*1024*8;
 	mpz_t  zPrimorial;
@@ -70,8 +71,9 @@ namespace Core
 		}
 	}
 	 
-	unsigned int * make_primes(unsigned int limit) {
-		unsigned int      *primes;
+	unsigned long * make_primes(unsigned int limit) 
+	{
+		unsigned long      *primes;
 		unsigned long       i,j;
 		unsigned long       s = sqrtld(prime_limit);
 		unsigned long       n = 0;
@@ -94,7 +96,7 @@ namespace Core
 			}
 		}
 		for(i=2;i<=prime_limit;i++) if(bit_array_sieve[i]==1) n += 1;
-		primes = (unsigned int*)malloc((n + 1) * sizeof(unsigned int));
+		primes = (unsigned long*)malloc((n + 1) * sizeof(unsigned long));
 		primes[0] = n;
 		j = 1;
 		for(i=2;i<=prime_limit;i++) if(bit_array_sieve[i]==1) {
@@ -137,8 +139,8 @@ namespace Core
 		int nSize = mpz_sizeinbase(zPrimorial,2);
 		printf("\nPrimorial Size = %d-bit\n\n", nSize);
 
-		inverses=(unsigned int *) malloc((nPrimeLimit+1)*sizeof(unsigned int));	
-		memset(inverses, 0, (nPrimeLimit+1) * sizeof(unsigned int));
+		inverses=(unsigned long *) malloc((nPrimeLimit+1)*sizeof(unsigned long));	
+		memset(inverses, 0, (nPrimeLimit+1) * sizeof(unsigned long));
 
 		mpz_t zPrime, zInverse, zResult;
 
@@ -176,7 +178,7 @@ namespace Core
 #define STARTOFFSET 0
 #define MAX_PRIMES	8000
 #define STOPRANK 3
-	unsigned char fastModPrimeChecks(unsigned int n, unsigned int * base_remainders)
+	unsigned char fastModPrimeChecks(unsigned int n, uint32_t * base_remainders)
 	{
 		unsigned char rank = MAXCHAIN - STARTOFFSET;
 		unsigned char pChainMap[MAXCHAIN];
@@ -217,7 +219,8 @@ namespace Core
 	}
 	//};
 
-	void cpusieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
+//#pragma GCC optimize ("unroll-loops")
+	void cpusieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 	{
 		mpz_t zPrimorialMod, zTempVar;
 		mpz_init(zPrimorialMod);
@@ -229,19 +232,21 @@ namespace Core
 		mpz_mod(zPrimorialMod, zPrimorialMod, zPrimorial);
 
 #if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
-		mpz_import(zOctuplet, 1, 1, sizeof(octuplet_origins[j]), 0, 0, &ktuple_origin);
-		mpz_add(zPrimorialMod, zPrimorialMod, zOctuplet);
+		mpz_t zKTuplet;
+		mpz_init(zKTuplet);
+		mpz_import(zKTuplet, 1, 1, sizeof(ktuple_origin), 0, 0, &ktuple_origin);
+		mpz_add(zPrimorialMod, zPrimorialMod, zKTuplet);
 #else
 		mpz_add_ui(zPrimorialMod, zPrimorialMod, ktuple_origin);
 #endif
 
 		mpz_add(zTempVar, zPrimeOrigin, zPrimorialMod);
 		mpz_set(*zFirstSieveElement, zTempVar);
-		unsigned int * base_remainders = (unsigned int *)malloc(PRIMELIMIT * sizeof(unsigned int));
+		uint32_t * base_remainders = (uint32_t *)malloc(PRIMELIMIT * sizeof(uint32_t));
 
 		for (unsigned int i = 0; i < PRIMELIMIT; i++)
 		{
-			unsigned long  p = primes[i];
+			unsigned long p = primes[i];
 			base_remainders[i] = mpz_tdiv_ui(zTempVar, p);
 		}
 
@@ -272,23 +277,23 @@ namespace Core
 
 		for (unsigned int i = nPrimorialEndPrime; i < PRIMELIMIT1; i++)
 		{
-			unsigned long  p = primes[i];
-			unsigned int inv = inverses[i];
-			unsigned int base_remainder = base_remainders[i];
+			uint32_t  p = primes[i];
+			uint32_t inv = inverses[i];
+			uint32_t base_remainder = base_remainders[i];
 
 			
-			int lc = (sieveSize / p) + 1;
+			uint32_t lc = (sieveSize / p) + 1;
 			for (int l = 0; l < lc; l++)
 			{
-				uint lp = l*(uint)p;
-				for (int pt = SIEVETARGETSTART; pt < SIEVETARGET; pt++)
+				uint32_t lp = l*p;
+				for (uint32_t pt = SIEVETARGETSTART; pt < SIEVETARGET; pt++)
 				{
 					//unsigned int idx = indexes[pt][i] + lp;
-					unsigned int remainder = base_remainder + _offsets14Tuple1[pt];
+					uint32_t remainder = base_remainder + _offsets14Tuple1[pt];
 					if (p < remainder)
 						remainder -= p;
-					unsigned long r = (p - remainder)*inv;
-					unsigned int idx = (r % p) + lp;
+					uint64_t r = (uint64_t)(p - remainder)*(uint64_t)inv;
+					uint32_t idx = (r % p) + lp;
 
 					if (idx < sieveSize)
 					{
@@ -307,21 +312,21 @@ namespace Core
 		for (unsigned int i = PRIMELIMIT1; i < PRIMELIMIT; i++)
 		{
 			unsigned long  p = primes[i];
-			unsigned int inv = inverses[i];
+			unsigned long inv = inverses[i];
 			unsigned int base_remainder = base_remainders[i];
 
-			int lc = (sieveSize / primes[i]) + 1;
-			unsigned int remainder = base_remainder + _offsets14Tuple1[5];
+			uint32_t lc = (sieveSize / primes[i]) + 1;
+			uint32_t remainder = base_remainder + _offsets14Tuple1[5];
 
 			if (p < remainder)
 				remainder -= p;
-			unsigned long r = (p - remainder)*inv;
-			unsigned int idx = r % p;
+			uint64_t r = (uint64_t)(p - remainder)*(uint64_t)inv;
+			uint32_t idx = r % p;
 
-			for (int l = 0; l < lc; l++)
+			for (uint32_t l = 0; l < lc; l++)
 			{
-				uint lp = l*(uint)p;
-				uint idxlp = idx + lp;
+				uint32_t lp = l*p;
+				uint32_t idxlp = idx + lp;
 				if (idxlp < sieveSize)
 					sieve1[(idxlp) >> 6] |= (1ULL << ((idxlp) & 63));
 			}
@@ -329,31 +334,31 @@ namespace Core
 			remainder = base_remainder + _offsets14Tuple1[6];
 			if (p < remainder)
 				remainder -= p;
-			r = (p - remainder)*inv;
+			r = (uint64_t)(p - remainder)*(uint64_t)inv;
 			idx = r % p;
 
-			for (int l = 0; l < lc; l++)
+			for (uint32_t l = 0; l < lc; l++)
 			{
-				uint lp = l*(uint)p;
-				uint idxlp = idx + lp;
+				uint32_t lp = l*p;
+				uint32_t idxlp = idx + lp;
 				if (idxlp < sieveSize)
 					sieve1[(idxlp) >> 6] |= (1ULL << ((idxlp) & 63));
 			}
 		}
 
-		std::list<std::pair<unsigned int, unsigned char>> mapCand;
+		std::list<std::pair<uint64_t, unsigned char>> mapCand;
 
-		for (unsigned int i = 0U; i < sieveSize / 64U; i++)
+		for (uint64_t i = 0U; i < sieveSize / 64U; i++)
 		{
 			if (sieve1[i] == 0xFFFFFFFFFFFFFFFF)
 				continue;
-			for (unsigned int p = 0U; p < 64U; p++)
+			for (uint64_t p = 0U; p < 64U; p++)
 			{
 				if (sieve1[i] & (1ULL << p))
 					continue;
-				unsigned int idx = i * 64U + p;
+				uint64_t idx = i * 64U + p;
 				unsigned char rank = fastModPrimeChecks(idx, base_remainders);
-				mapCand.push_back(std::pair<unsigned int, unsigned char>(idx, rank));
+				mapCand.push_back(std::pair<uint64_t, unsigned char>(idx, rank));
 			}
 		}
 		sieveCandidateCount += mapCand.size();
@@ -437,31 +442,6 @@ namespace Core
 		return ((composite - FermatTest(composite, 2) << 24) / composite).getuint();
 	}
 	
-	
-	/** bit_array_sieve of Eratosthenes for Divisor Tests. Used for Searching Primes. **/
-	std::vector<unsigned int> Eratosthenes(int nSieveSize)
-	{
-		bool TABLE[nSieveSize];
-		
-		for(int nIndex = 0; nIndex < nSieveSize; nIndex++)
-			TABLE[nIndex] = false;
-			
-			
-		for(int nIndex = 2; nIndex < nSieveSize; nIndex++)
-			for(int nComposite = 2; (nComposite * nIndex) < nSieveSize; nComposite++)
-				TABLE[nComposite * nIndex] = true;
-		
-		
-		std::vector<unsigned int> PRIMES;
-		for(int nIndex = 2; nIndex < nSieveSize; nIndex++)
-			if(!TABLE[nIndex])
-				PRIMES.push_back(nIndex);
-
-		
-		printf("bit_array_sieve of Eratosthenes Generated %lu Primes.\n", PRIMES.size());
-		
-		return PRIMES;
-	}
 	
 	/** Basic Search filter to determine if further tests should be done. **/
 	bool DivisorCheck(CBigNum test)

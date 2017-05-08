@@ -1,12 +1,15 @@
 #ifndef COINSHIELD_LLP_CORE_H
 #define COINSHIELD_LLP_CORE_H
 
+#define _ENABLE_ATOMIC_ALIGNMENT_FIX	// for BOOST to compile in VS
+
 #include <stdlib.h>
 #include "types.h"
 #include <queue>
 #include "config.h"
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/queue.hpp>
+
 
 namespace Core
 {
@@ -423,18 +426,14 @@ namespace Core
 	}sieveJob;
 
 
-	extern unsigned int *primes;
-	extern unsigned int *inverses;
+	extern unsigned long *primes;
+	extern unsigned long *inverses;
 	extern unsigned int nBitArray_Size;
 	extern mpz_t  zPrimorial;
 
 	extern unsigned int prime_limit;
 	extern unsigned int nPrimeLimit;
 	extern unsigned int nPrimorialEndPrime;
-	boost::lockfree::queue<int> pcJobQueueActive(MAX_PRIME_TEST_JOBQUEUE_SIZE);
-	boost::lockfree::queue<int> pcJobQueuePassive(MAX_PRIME_TEST_JOBQUEUE_SIZE);
-		
-	boost::lockfree::queue<submitBlockData> submitBlockQueue(10);
 
 	extern uint64 octuplet_origins[];
 	extern uint64 tentuplet2_origins[];
@@ -444,15 +443,14 @@ namespace Core
 	double GetPrimeDifficulty(CBigNum prime, int checks);
 	double GetSieveDifficulty(CBigNum next, unsigned int clusterSize);
 	unsigned int GetPrimeBits(CBigNum prime, int checks);
-	unsigned int GetFractionalDifficulty(CBigNum composite);
-	std::vector<unsigned int> Eratosthenes(int nSieveSize);
+	unsigned int GetFractionalDifficulty(CBigNum composite);	
 	bool DivisorCheck(CBigNum test);
 	unsigned long PrimeSieve(CBigNum BaseHash, unsigned int nDifficulty, unsigned int nHeight);
 	bool PrimeCheck(CBigNum test, int checks);
 	CBigNum FermatTest(CBigNum n, CBigNum a);
 	bool Miller_Rabin(CBigNum n, int checks);
 	
-	void cpusieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
+	void cpusieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
 
 
 	/** Class to hold the basic data a Miner will use to build a Block.
@@ -471,6 +469,7 @@ namespace Core
 		boost::mutex MUTEX;
 		uint64_t* bit_array_sieve;
 		
+	
 
 
 		
@@ -516,6 +515,11 @@ namespace Core
 		boost::lockfree::queue<int> * sieveJobQueueActive;
 		boost::lockfree::queue<int> * sieveJobQueuePassive;
 
+		boost::lockfree::queue<submitBlockData> * submitBlockQueue;
+
+		boost::lockfree::queue<int> * pcJobQueueActive;
+		boost::lockfree::queue<int> * pcJobQueuePassive;
+
 		unsigned int nMinimumShare;
 		
 		ServerConnection(std::string ip, std::string port, int nMaxSThreads, int nMaxPTThreads, int nMaxTimeout, bool bSolo);
@@ -529,8 +533,16 @@ namespace Core
 				if (PRIMETESTTHREADS[nIndex] != NULL)
 					delete PRIMETESTTHREADS[nIndex];
 			}
-			delete sieveJobQueueActive;
-			delete sieveJobQueuePassive;
+			if (sieveJobQueueActive != NULL)
+				delete sieveJobQueueActive;
+			if(sieveJobQueuePassive != NULL)
+				delete sieveJobQueuePassive;
+			if (submitBlockQueue != NULL)
+				delete submitBlockQueue;
+			if (pcJobQueueActive != NULL)
+				delete pcJobQueueActive;
+			if (pcJobQueuePassive != NULL)
+				delete pcJobQueuePassive;
 
 		}
 

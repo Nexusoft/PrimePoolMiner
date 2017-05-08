@@ -2,7 +2,6 @@
 #include "config.h"
 #include <deque>
 #include <numeric>
-#include <sys/resource.h>
 
 #include "oacc/AccSieve.h"
 
@@ -110,15 +109,13 @@ namespace Core
 					cServerConnection->sieveJobQueuePassive->push(sieveJobId);
 					continue;
 				}
-				pthread_t thId = pthread_self();
-				//printf("Got Job Id %u on thread %u\n", sieveJobId, thId);
 				CBigNum BaseHash;
-				if (sJob->pBlock.nHeight != 0)
+				if (sJob->pBlock.nHeight != 0) //solo
 				{
 					BaseHash.setuint1024( sJob->pBlock.GetHash());
 					hashMerkleRoot = sJob->pBlock.hashMerkleRoot;
 				}
-				else if (sJob->primeOrigin != 0)
+				else if (sJob->primeOrigin != 0) // pool
 					BaseHash.setuint1024(sJob->primeOrigin);
 				else
 				{
@@ -146,7 +143,7 @@ namespace Core
 
 					int primeTestJobId = 0;
 
-					while (!pcJobQueuePassive.pop(primeTestJobId))
+					while (!cServerConnection->pcJobQueuePassive->pop(primeTestJobId))
 					{
 						printf("Test queue is full!!! Consider rising Prime Limit to produce less candidates per sieve or add more prime checking threads.\n");
 						Sleep(300);
@@ -167,7 +164,7 @@ namespace Core
 					mpz_set(ptJob.zFirstSieveElement, zFirstSieveElement);
 					mpz_set(ptJob.zPrimeOrigin, zPrimeOrigin);
 
-					pcJobQueueActive.push(primeTestJobId);
+					cServerConnection->pcJobQueueActive->push(primeTestJobId);
 
 					int64 nElapsedTime = nAfterSieve - nStartTime;
 					sieveTime += nElapsedTime;
@@ -195,6 +192,14 @@ namespace Core
 
 	ServerConnection::ServerConnection(std::string ip, std::string port, int nMaxSThreads, int nMaxPTThreads, int nMaxTimeout, bool bSolo) : IP(ip), PORT(port), TIMER(), nSieveThreads(nMaxSThreads), nPTestThreads(nMaxPTThreads), nTimeout(nMaxTimeout), bSoloMining(bSolo), THREAD(bSolo ? boost::bind(&ServerConnection::SoloServerThread, this) : boost::bind(&ServerConnection::ServerThread, this))
 	{
+		sieveJobQueueActive = new boost::lockfree::queue<int>(MAX_SIEVE_JOBQUEUE_SIZE);
+		sieveJobQueuePassive = new boost::lockfree::queue<int>(MAX_SIEVE_JOBQUEUE_SIZE);
+
+		pcJobQueueActive = new boost::lockfree::queue<int>(MAX_PRIME_TEST_JOBQUEUE_SIZE);
+		pcJobQueuePassive = new boost::lockfree::queue<int>(MAX_PRIME_TEST_JOBQUEUE_SIZE);
+
+		submitBlockQueue = new boost::lockfree::queue<submitBlockData>(5);
+
 		for (size_t i = 0; i < MAX_PRIME_TEST_JOBQUEUE_SIZE; i++)
 		{
 			primeTestJob job;
@@ -206,10 +211,8 @@ namespace Core
 			mpz_init(job.zFirstSieveElement);
 			mpz_init(job.zPrimeOrigin);
 			primeTestJobs.insert(std::pair<int, primeTestJob>(i, job));
-			Core::pcJobQueuePassive.push(i);
+			pcJobQueuePassive->push(i);
 		}
-		sieveJobQueueActive = new boost::lockfree::queue<int>(MAX_SIEVE_JOBQUEUE_SIZE);
-		sieveJobQueuePassive = new boost::lockfree::queue<int>(MAX_SIEVE_JOBQUEUE_SIZE);
 
 		nSieveJobsQueueSize = std::min(nSieveThreads * 2, MAX_SIEVE_JOBQUEUE_SIZE);
 
@@ -254,13 +257,13 @@ namespace Core
 			THREADS[nIndex]->fNewBlockRestart = true;
 		}
 
-		pcJobQueueActive.consume_all([](int i) {});
-		pcJobQueuePassive.consume_all([](int i) {});
+		pcJobQueueActive->consume_all([](int i) {});
+		pcJobQueuePassive->consume_all([](int i) {});
 		sieveJobQueueActive->consume_all([](int i) {});
 		sieveJobQueuePassive->consume_all([](int i) {});
 		for (size_t i = 0; i < MAX_PRIME_TEST_JOBQUEUE_SIZE; i++)
 		{
-			pcJobQueuePassive.push(i);
+			pcJobQueuePassive->push(i);
 		}
 		for (size_t i = 0; i < nSieveJobsQueueSize; i++)
 		{
@@ -383,24 +386,24 @@ namespace Core
 				cPrimeTimer.Reset();
 			}
 
-#ifndef __CYGWIN__
 			/** Rudimentary Meter **/
 			if (TIMER.Elapsed() >= 30)
 			{
-				double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
-				double WPS = 1.0 * std::accumulate(vWPSValues.begin(), vWPSValues.end(), 0LL) / vWPSValues.size();;
-
-
+				//double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
+				double WPS = 1.0 * std::accumulate(vWPSValues.begin(), vWPSValues.end(), 0LL) / vWPSValues.size();
+				
 				if (!bSoloMining)
-					CLIENT->SubmitPPS(PPS, WPS);
+					CLIENT->SubmitPPS(0, WPS);
+				
+#ifndef __CYGWIN__
 
 				CLIENT->GetBalance();
 				CLIENT->GetPayouts();
-
+#endif
 				//PrintStats();
 				TIMER.Reset();
 			}
-#endif
+
 
 			/** Submit any Shares from the Mining Threads. **/
 			SUBMIT_MUTEX.lock();
@@ -691,11 +694,11 @@ namespace Core
 
 
 				/** Submit any Shares from the Mining Threads. **/
-				while (!submitBlockQueue.empty())
+				while (!submitBlockQueue->empty())
 				{
 					bBlockSubmission = true;
 					submitBlockData data;
-					submitBlockQueue.pop(data);
+					submitBlockQueue->pop(data);
 										
 					nBlocksFoundCounter++;
 
@@ -763,11 +766,10 @@ namespace Core
 					{
 						printf("<DEBUG> Got an invalid BLOCK\n");
 						CLIENT->Disconnect();
-						Sleep(100);
-						delete CLIENT;
-						Sleep(10);
+						Sleep(500);												
 						CLIENT = new LLP::Miner(IP, PORT);
-						Sleep(100);
+						Sleep(500);
+						ResetThreads();
 					}
 				}
 
@@ -792,15 +794,15 @@ namespace Core
 		uint64 avgSieveTime = sieveTime / sieveCount;
 		double SPS = (double)sieveCount / (double)SecondsElapsed;
 		double TPS = (double)testCount / (double)SecondsElapsed;
-		double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
+		//double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
 		double WPS = 1.0 * std::accumulate(vWPSValues.begin(), vWPSValues.end(), 0LL) / vWPSValues.size();;
 
 		struct tm t;
 		time_t aclock = SecondsElapsed;
 		gmtime_r(&aclock, &t);
 
-		printf("[METERS] %-5.02f P2PS | %-5.02f WPS | Largest Share %f | Diff. %f | Height = %u ", 
-			PPS, WPS, nLargestShare / 10000000.0, nDifficulty / 10000000.0, nBestHeight);
+		printf("[METERS]  %-5.02f WPS | Largest Share %f | Diff. %f | Height = %u ", 
+			 WPS, nLargestShare / 10000000.0, nDifficulty / 10000000.0, nBestHeight);
 		if (bSoloMining)
 			printf("| Block(s) ACC=%u REJ=%u ", nBlocksAccepted, nBlocksRejected);
 		else
@@ -834,17 +836,17 @@ namespace Core
 		double sharePerH = ((double)shareCount / SecondsElapsed) * 3600;
 		double shareWeightPerH = ((double)totalShareWeight / SecondsElapsed) * 3.6;
 		printf("\n---------------------------------------------------------------------------------------------\n");
-		printf("AVG Time Sieve: %llu | PTest: %llu | Siv/s: %-7.03f | Tst/s: %-7.03f", avgSieveTime, testCount == 0 ? 0 : pTestTime / testCount, SPS, TPS);
+		printf("AVG Time - Sieve: %llu | PTest: %llu | Siv/s: %-7.03f | Tst/s: %-7.03f", avgSieveTime, testCount == 0 ? 0 : pTestTime / testCount, SPS, TPS);
 		if (!bSoloMining)
 			printf(" | Shares: %llu | Shr/h: %-7.03f | TotalShareValue: %llu | ShrVal/h: %-5.02fK", shareCount, sharePerH, totalShareWeight, shareWeightPerH);
-		printf("\nAvgCandCnt: %llu / %llu - CandHit : %-2.02f%% 2nd : %-2.02f%%", \
-			testCount == 0 ? 0 : candidateCount / testCount, testCount == 0 ? 0 : sieveCandidateCount / testCount, \
-			candidateCount == 0 ? 0 : (double)(candidateHitCount * 100) / (double)candidateCount, \
-			candidateCount == 0 ? 0 : (double)(candidateHit2Count * 100) / (double)candidateCount);
+		//printf("\nAvgCandCnt: %llu / %llu - CandHit : %-2.02f%% 2nd : %-2.02f%%", \
+		//	testCount == 0 ? 0 : candidateCount / testCount, testCount == 0 ? 0 : sieveCandidateCount / testCount, \
+		//	candidateCount == 0 ? 0 : (double)(candidateHitCount * 100) / (double)candidateCount, \
+		//	candidateCount == 0 ? 0 : (double)(candidateHit2Count * 100) / (double)candidateCount);
 		printf("\n\n");
 	}
 
-	int find_tuples2(unsigned long * candidates, mpz_t zPrimorial, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, unsigned int nMinimumPrimeCount, std::vector<unsigned long> * nonces)
+	int find_tuples2(unsigned long * candidates, mpz_t zPrimorial, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, unsigned int nMinimumPrimeCount, std::vector<std::pair<uint64_t, uint16_t>> * nonces)
 	{
 		mpz_t zPrimeOriginOffset, zTempVar, zTempVar2;
 		mpz_init(zPrimeOriginOffset);
@@ -934,11 +936,13 @@ namespace Core
 				mpz_sub(zTempVar, zPrimeOriginOffset, zPrimeOrigin);
 
 #if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
-				nNonce = mpz2uint64(zTempVar);
+				//nNonce = mpz2uint64(zTempVar);
+				nNonce = zTempVar->_mp_d[0];
 #else
+				
 				nNonce = mpz_get_ui(zTempVar);
 #endif
-				nonces->push_back(nNonce);
+				nonces->push_back(std::pair<uint64_t, uint16_t>(nNonce, nPrimeCount));
 			}
 		}
 		candidateCount += cx;
@@ -955,7 +959,7 @@ namespace Core
 			if (exitSignal)
 				break;
 			int jobId = 0;
-			if (pcJobQueueActive.pop(jobId))
+			if (pcJobQueueActive->pop(jobId))
 			{
 				
 				//printf("got job id %u on thread %u\n", jobId, boost::this_thread::get_id());
@@ -966,18 +970,20 @@ namespace Core
 				}
 				primeTestJob job = primeTestJobs.at(jobId);
 
-				std::vector<unsigned long>  nonces;
+				std::vector<std::pair<uint64_t,uint16_t>>  nonces;
 				int64 nStartTime = GetTimeMicros();
 				nPrimes += find_tuples2(job.candidates, zPrimorial, job.zPrimeOrigin, job.zFirstSieveElement, 3, &nonces);
 				pTestTime += (GetTimeMicros() - nStartTime);
 				testCount++;
-				pcJobQueuePassive.push(jobId);
+				pcJobQueuePassive->push(jobId);
 				
 					
-				for (std::vector<unsigned long>::iterator it = nonces.begin(); it != nonces.end(); ++it)
+				for (std::vector<std::pair<uint64_t, uint16_t>>::iterator it = nonces.begin(); it != nonces.end(); ++it)
 				{
-					unsigned long nNonce = *it;
-					unsigned int nDiff = GetPrimeBits((*job.baseHash + nNonce), 1);
+					uint64_t nNonce = it->first;					
+					unsigned int nDiff = 30000000;
+					if (it->second > 3)
+						nDiff = GetPrimeBits((*job.baseHash + nNonce), 1);
 					uint32_t nPrimeCount = nDiff / 10000000;
 					//printf(" - %f - Nonce: %u\n", (double)nDiff / 10000000.0, nNonce);
 					if (nPrimeCount < 14)
@@ -1001,7 +1007,7 @@ namespace Core
 							data.hashMerkleRoot = new uint512(*job.hashMerkleRoot);
 							data.nNonce = nNonce;
 							data.nDiff = nDiff;
-							submitBlockQueue.push(data);
+							submitBlockQueue->push(data);
 						}
 						else
 						{
@@ -1032,7 +1038,9 @@ void  INThandler(int sig)
 
 int main(int argc, char *argv[])
 {
-
+#if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
+	//TODO: Stack in VS ???
+#else
 	const rlim_t kStackSize = 32 * 1024 * 1024;   // min stack size = 16 MB
 	struct rlimit rl;
 	int result;
@@ -1050,7 +1058,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-
+#endif
 	signal(SIGINT, INThandler);
 	// HashToBeWild!:
 	std::string IP = "";
@@ -1066,7 +1074,7 @@ int main(int argc, char *argv[])
 	Core::MinerConfig Config;
 	if (Config.ReadConfig())
 	{
-		printf("Using the config file...\n");
+		//printf("Using the config file...\n");
 		// populate settings from config object
 		IP = Config.strHost;
 		PORT = Config.nPort;

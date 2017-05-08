@@ -11,7 +11,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif 
-	void pgisieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned int * primes, unsigned int * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
+	void pgisieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
 	
 #ifdef __cplusplus
 }
@@ -32,6 +32,10 @@ extern "C" {
 	int find_tuples(unsigned long * candidates, mpz_t zPrimorial, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, unsigned int nMinimumPrimeCount, std::vector<unsigned long> * nonces);
 #ifdef __cplusplus
 }
+#endif
+
+#if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
+uint64_t mpz2uint64(mpz_t n);
 #endif
 
 class  AccSieve {

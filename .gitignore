@@ -18,3 +18,4 @@
 *.zip
 /obj/x64/Release
 *.stackdump
+/x64

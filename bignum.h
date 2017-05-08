@@ -117,7 +117,7 @@ public:
 
     unsigned int getuint() const
     {
-        return BN_get_word(this);
+        return (unsigned int)BN_get_word(this);
     }
 
     int getint() const

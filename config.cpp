@@ -46,11 +46,11 @@ namespace Core
 
 	bool MinerConfig::ReadConfig()
 	{
-		printf("in read");
+		//printf("in read");
 		bool bSuccess = true;
 		try
 		{
-			printf("Reading config file miner.conf\n");
+			//printf("Reading config file miner.conf\n");
 			std::ifstream lConfigFile("miner.conf");
 			pt::ptree root;
 			pt::read_json("miner.conf", root);

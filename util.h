@@ -11,9 +11,11 @@
 typedef int pid_t;
 #define aligned_alloc(a, s)		malloc(s)
 #define gmtime_r(now, tm_time)		_gmtime64_s(tm_time, now)
+typedef unsigned long int pthread_t;
 #elif !defined __MINGW32__
 	#include <sys/types.h>
 	#include <sys/time.h>
+	#include <sys/resource.h>
 	#include <sys/resource.h>
 #endif
 
@@ -41,8 +43,7 @@ typedef int pid_t;
 int GetTotalCores();
 
 /** Convert an mpz into 64 bit unsigned integer. Used in replacement of mpz_get_ui. **/
-uint64 mpz2uint64(mpz_t z);
-
+uint64_t mpz2uint64(mpz_t n);
 
 /** Convert a Bignum into Mpz integer for GMP. **/
 int bignum2mpz(const BIGNUM *bn, mpz_t g);
@@ -63,7 +64,6 @@ inline std::vector<unsigned char> uint2bytes(unsigned int UINT)
 			
 /** Convert a byte stream into unsigned integer 32 bit. **/	
 inline unsigned int bytes2uint(std::vector<unsigned char> BYTES, int nOffset = 0) { return (BYTES[0 + nOffset] << 24) + (BYTES[1 + nOffset] << 16) + (BYTES[2 + nOffset] << 8) + BYTES[3 + nOffset]; }
-			
 			
 /** Convert a 64 bit Unsigned Integer to Byte Vector using Bitwise Shifts. **/
 inline std::vector<unsigned char> uint2bytes64(uint64 UINT)
