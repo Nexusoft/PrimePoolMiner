@@ -322,10 +322,12 @@ namespace LLP
 		
 		/** Disconnect Socket. **/
 		void Disconnect()
-		{
-			if(!CONNECTED || Errors())
-				return;
-				
+		{			
+			printf("Disconnecting!!!!\n");
+			TIMER.Reset();
+			ERROR_HANDLE.clear();
+			if(!CONNECTED)
+				return;				
 			try
 			{
 				SOCKET -> shutdown(boost::asio::ip::tcp::socket::shutdown_both, ERROR_HANDLE);
@@ -340,12 +342,27 @@ namespace LLP
 	private:
 		
 		/** Lower level network communications: Read. Interacts with OS sockets. **/
-		size_t Read(std::vector<unsigned char> &DATA, size_t nBytes) { if(Errors()) return 0; TIMER.Reset(); return  boost::asio::read(*SOCKET, boost::asio::buffer(DATA, nBytes), ERROR_HANDLE); }
+		size_t Read(std::vector<unsigned char> &DATA, size_t nBytes)
+		{
+			if (Errors()) return 0; 
+			TIMER.Reset(); 
+			auto res = boost::asio::read(*SOCKET, boost::asio::buffer(DATA, nBytes), ERROR_HANDLE);
+			if (Errors())
+				printf("Error reading from socket!\n");
+			return res;
+		}
 							
 				
 				
 		/** Lower level network communications: Write. Interacts with OS sockets. **/
-		void Write(std::vector<unsigned char> DATA) { if(Errors()) return; TIMER.Reset(); boost::asio::write(*SOCKET, boost::asio::buffer(DATA, DATA.size()), ERROR_HANDLE); }
+		void Write(std::vector<unsigned char> DATA) 
+		{ 
+			if(Errors()) return; 
+			TIMER.Reset(); 
+			boost::asio::write(*SOCKET, boost::asio::buffer(DATA, DATA.size()), ERROR_HANDLE); 
+			if (Errors())
+				printf("Error writing to socket!\n");			
+		}
 
 	};
 

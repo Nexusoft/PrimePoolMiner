@@ -349,7 +349,7 @@ namespace Core
 			}
 
 			/** Attempt with best efforts to keep the Connection Alive. **/
-			if (!CLIENT->Connected() || CLIENT->Errors() || CLIENT->Timeout(30))
+			if (!CLIENT->Connected())
 			{
 				if (!CLIENT->Connect())
 					continue;
@@ -362,6 +362,22 @@ namespace Core
 
 					ResetThreads();
 				}
+			}
+
+			if (CLIENT->Timeout(120))
+			{
+				printf("Timout in the communication protocol ...\n");
+				CLIENT->Disconnect();
+				Sleep(100);
+				continue;
+			}
+
+			if (CLIENT->Errors())
+			{
+				printf("Error in the communication protocol ...\n");
+				CLIENT->Disconnect();
+				Sleep(100);
+				continue;
 			}
 
 			if (cPrimeTimer.Elapsed() >= 1)
@@ -387,19 +403,17 @@ namespace Core
 			}
 
 			/** Rudimentary Meter **/
-			if (TIMER.Elapsed() >= 30)
+			if (TIMER.Elapsed() >= 10)
 			{
 				//double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
 				double WPS = 1.0 * std::accumulate(vWPSValues.begin(), vWPSValues.end(), 0LL) / vWPSValues.size();
 				
 				if (!bSoloMining)
+				{
 					CLIENT->SubmitPPS(0, WPS);
-				
-#ifndef __CYGWIN__
-
-				CLIENT->GetBalance();
-				CLIENT->GetPayouts();
-#endif
+					CLIENT->GetBalance();
+					CLIENT->GetPayouts();
+				}
 				//PrintStats();
 				TIMER.Reset();
 			}
@@ -628,7 +642,7 @@ namespace Core
 					break;
 				}
 				/** Attempt with best efforts to keep the Connection Alive. **/
-				if (!CLIENT->Connected() || CLIENT->Errors() || CLIENT->Timeout(30))
+				if (!CLIENT->Connected())
 				{
 					if (!CLIENT->Connect())
 					{
@@ -641,6 +655,22 @@ namespace Core
 						CLIENT->SetChannel(1);
 						ResetThreads();
 					}
+				}
+
+				if (CLIENT->Timeout(120))
+				{
+					printf("Timout in the communication protocol ...\n");
+					CLIENT->Disconnect();
+					Sleep(100);
+					continue;
+				}
+
+				if (CLIENT->Errors())
+				{
+					printf("Error in the communication protocol ...\n");
+					CLIENT->Disconnect();
+					Sleep(100);
+					continue;
 				}
 
 				unsigned int nHeight = CLIENT->GetHeight();
