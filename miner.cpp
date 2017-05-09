@@ -281,6 +281,7 @@ namespace Core
 		while (!RESPONSE_QUEUE.empty())
 			RESPONSE_QUEUE.pop();
 
+
 	}
 
 	/** Add a Block to the Submit Queue. **/
@@ -366,9 +367,10 @@ namespace Core
 
 			if (CLIENT->Timeout(120))
 			{
-				printf("Timout in the communication protocol ...\n");
+				printf("Timeout in the communication protocol ...\n");
 				CLIENT->Disconnect();
 				Sleep(100);
+				bBlockRequestSent = false;
 				continue;
 			}
 
@@ -377,6 +379,7 @@ namespace Core
 				printf("Error in the communication protocol ...\n");
 				CLIENT->Disconnect();
 				Sleep(100);
+				bBlockRequestSent = false;
 				continue;
 			}
 
@@ -435,8 +438,9 @@ namespace Core
 			/** Check if there is work to do for each Miner Thread. **/
 			if (!sieveJobQueuePassive->empty() && !bBlockRequestSent)
 			{
-					CLIENT->GetBlock();
-					bBlockRequestSent = true;
+				//printf("Requesting new block form the server.\n");
+				CLIENT->GetBlock();
+				bBlockRequestSent = true;
 			}
 
 
@@ -659,7 +663,7 @@ namespace Core
 
 				if (CLIENT->Timeout(120))
 				{
-					printf("Timout in the communication protocol ...\n");
+					printf("Timeout in the communication protocol ...\n");
 					CLIENT->Disconnect();
 					Sleep(100);
 					continue;
