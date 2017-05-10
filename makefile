@@ -37,15 +37,17 @@ LIBS += \
    -l gmp
 
 
-#DEBUGFLAGS= -ggdb -ffunction-sections -O0
-#CXXFLAGS=-Ofast -mtune=native -march=native -mavx -fabi-version=0
+ifndef MARCHFLAGS
+MARCHFLAGS=-mtune=native -march=native
+#	MARCHFLAGS=-mtune=ivybridge -march=ivybridge -mavx -fabi-version=0
+#	MARCHFLAGS=-march=broadwell -march=broadwell -mavx2 -fabi-version=0  
+endif
+
 $(info $(DEBUG))
 ifeq ($(DEBUG),TRUE)
 	CXXFLAGS=-ggdb -ffunction-sections -O0
 else
-	CXXFLAGS=-Ofast -mtune=core2 -march=core2
-#	CXXFLAGS=-Ofast -mtune=ivybridge -march=ivybridge -mavx -fabi-version=0
-#	CXXFLAGS=-Ofast -march=broadwell -march=broadwell -mavx2 -fabi-version=0  
+	CXXFLAGS=-Ofast
 endif
 
 xCXXFLAGS= -std=gnu++11 -pthread -m64 -static-libgcc -static-libstdc++ -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security $(DEBUGFLAGS) $(DEFS) $(CXXFLAGS) $(MARCHFLAGS)
