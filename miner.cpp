@@ -409,11 +409,13 @@ namespace Core
 			if (TIMER.Elapsed() >= 10)
 			{
 				//double PPS = 1.0 * std::accumulate(vPPSValues.begin(), vPPSValues.end(), 0LL) / vPPSValues.size();
+				unsigned int SecondsElapsed = (unsigned int)time(0) - nStartTimer;
+				double shareValPH = ((double)totalShareWeight / SecondsElapsed) * 3.6;
 				double WPS = 1.0 * std::accumulate(vWPSValues.begin(), vWPSValues.end(), 0LL) / vWPSValues.size();
 				
 				if (!bSoloMining)
 				{
-					CLIENT->SubmitPPS(0, WPS);
+					CLIENT->SubmitPPS(shareValPH, WPS);
 					CLIENT->GetBalance();
 					CLIENT->GetPayouts();
 				}

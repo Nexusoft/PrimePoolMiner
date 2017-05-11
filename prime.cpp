@@ -117,7 +117,7 @@ namespace Core
 
 		primes = make_primes(prime_limit);
 
-		printf("\n%d primes generated\n", primes[0]);
+		printf("\n%lu primes generated\n", primes[0]);
 
 		mpz_init(zPrimorial);
 
@@ -131,9 +131,9 @@ namespace Core
 		printf("\nPrimorial:");
 		printf("\n"); mpz_out_str(stdout, 10, zPrimorial); printf("\n");
 
-		printf("\nLast Primorial Prime = %u\n", primes[nPrimorialEndPrime-1]);
+		printf("\nLast Primorial Prime = %lu\n", primes[nPrimorialEndPrime-1]);
 
-		printf("\nFirst Sieving Prime = %u\n", primes[nPrimorialEndPrime]);
+		printf("\nFirst Sieving Prime = %lu\n", primes[nPrimorialEndPrime]);
 
 
 		int nSize = mpz_sizeinbase(zPrimorial,2);
@@ -155,7 +155,7 @@ namespace Core
 			int	inv = mpz_invert(zResult, zPrimorial, zPrime);
 			if (inv <= 0)
 			{
-				printf("\nNo Inverse for prime %u at position %u\n\n", primes[i], i);
+				printf("\nNo Inverse for prime %lu at position %u\n\n", primes[i], i);
 				exit(0);
 			}
 			else
