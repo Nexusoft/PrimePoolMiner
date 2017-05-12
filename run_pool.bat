@@ -7,5 +7,5 @@ REG ADD "HKLM\Software\Microsoft\Windows\Windows Error Reporting" /f /v DontShow
 @echo -------------------------------------------
 @echo !!!!! Change to your NXS address below and delete this line !!!!!!
 :begin
-nexus_cpuminer.exe nexusminingpool.com 9550 2RUpyCM8MSkSWXNLncoCQatKM8xvSvmoyK7gR1MrLDCFoayiLYG %1 %2 %3 
+nexus_cpuminer.exe nexusminingpool.com 9550 2SSbxVqakuEQeTLk8cgGKeWCiVrsyJtFMrvKxJDmuY3nRAmr2uJ %1 %2 %3 
 goto begin
