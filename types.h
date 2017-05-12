@@ -246,7 +246,7 @@ namespace LLP
 		
 		
 		/** Checks for any flags in the Error Handle. **/
-		bool Errors(){ return (ERROR_HANDLE == boost::asio::error::eof || ERROR_HANDLE); }
+		bool Errors(){ return (ERROR_HANDLE == boost::asio::error::eof || ERROR_HANDLE == boost::asio::error::connection_reset || ERROR_HANDLE); }
 				
 				
 		/** Determines if nTime seconds have elapsed since last Read / Write. **/
@@ -344,12 +344,22 @@ namespace LLP
 		/** Lower level network communications: Read. Interacts with OS sockets. **/
 		size_t Read(std::vector<unsigned char> &DATA, size_t nBytes)
 		{
-			if (Errors()) return 0; 
-			TIMER.Reset(); 
-			auto res = boost::asio::read(*SOCKET, boost::asio::buffer(DATA, nBytes), ERROR_HANDLE);
-			if (Errors())
-				printf("Error reading from socket!\n");
-			return res;
+			try
+			{
+
+				if (Errors()) return 0;
+				TIMER.Reset();
+				auto res = boost::asio::read(*SOCKET, boost::asio::buffer(DATA, nBytes), ERROR_HANDLE);
+				if (Errors())
+				{
+					printf("Error reading from socket!\n");
+					Disconnect();
+					return 0;
+				}
+				return res;
+			}
+			catch (...) {}
+
 		}
 							
 				
@@ -357,11 +367,18 @@ namespace LLP
 		/** Lower level network communications: Write. Interacts with OS sockets. **/
 		void Write(std::vector<unsigned char> DATA) 
 		{ 
-			if(Errors()) return; 
-			TIMER.Reset(); 
-			boost::asio::write(*SOCKET, boost::asio::buffer(DATA, DATA.size()), ERROR_HANDLE); 
-			if (Errors())
-				printf("Error writing to socket!\n");			
+			try
+			{
+				if (Errors()) return;
+				TIMER.Reset();
+				boost::asio::write(*SOCKET, boost::asio::buffer(DATA, DATA.size()), ERROR_HANDLE);
+				if (Errors())
+				{
+					printf("Error writing to socket!\n");
+					Disconnect();
+				}
+			}
+			catch (...) {}
 		}
 
 	};
