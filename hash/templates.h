@@ -12,15 +12,15 @@
 #include "skein.h"
 
 /** Ensure the c function names are not treated as mangled for cross platform support (Issue on OSX) **/
-#if defined(__cplusplus)
-extern "C" {
-#endif
+//#if defined(__cplusplus)
+//extern "C" {
+//#endif
 
 #include "KeccakHash.h"
 	
-#if defined(__cplusplus)
-}
-#endif
+//#if defined(__cplusplus)
+//}
+//#endif
 
 /** Hashing template for Checksums **/
 template<typename T1>

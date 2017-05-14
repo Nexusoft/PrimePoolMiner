@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="hash">
+      <UniqueIdentifier>{cedadad9-d448-4a9c-a79e-5e20762ad8f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="oacc">
+      <UniqueIdentifier>{86621360-566a-4bf8-a693-b05aaa8f5408}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="config.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="miner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="prime.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hash\skein_block.cpp">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="oacc\AccSieve.cpp">
+      <Filter>oacc</Filter>
+    </ClCompile>
+    <ClCompile Include="hash\KeccakHash.cpp">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="hash\KeccakSponge.cpp">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="hash\KeccakDuplex.cpp">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="hash\Keccak-compact64.cpp">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="hash\skein.cpp">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="mpi_mod_exp_redundant_WW.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="bignum.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="oacc\AccSieve.h">
+      <Filter>oacc</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\skein.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\uint1024.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\templates.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\skein_port.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\skein_iv.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\brg_types.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\brg_endian.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\KeccakF-1600-interface.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\KeccakDuplex.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\crypto_hash.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\KeccakSponge.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hash\KeccakHash.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="mpi_RSAZ.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="makefile" />
+    <None Include="build\.gitkeep" />
+    <None Include="soloMining.sh" />
+    <None Include="soloMining.bat" />
+    <None Include="makefile.unix" />
+    <None Include="miner.conf.pool-example" />
+    <None Include="miner.conf.solo-example" />
+    <None Include="red2norm.s">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="redundant_AVX2_AMM1024_asm.s">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="redundant_AVX2_AMS1024_asm.s">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>

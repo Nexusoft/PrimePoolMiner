@@ -1,0 +1,146 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{9C055873-7D25-4ED1-B7B7-2B5EA1B58A43}</ProjectGuid>
+    <Keyword>Linux</Keyword>
+    <RootNamespace>PrimePoolMiner</RootNamespace>
+    <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
+    <ApplicationType>Linux</ApplicationType>
+    <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
+    <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
+    <LinuxProjectType>{FC1A4D80-50E9-41DA-9192-61C0DBAA00D2}</LinuxProjectType>
+    <ProjectName>PrimePoolMiner</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <NMakePreprocessorDefinitions>WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <NMakePreprocessorDefinitions>WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <NMakeIncludeSearchPath>C:\deps62\gmp-6.1.1\;c:\deps62\boost_1_62_0</NMakeIncludeSearchPath>
+    <RemoteBuildCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile DEBUG=TRUE</RemoteBuildCommandLine>
+    <RemoteReBuildCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile clean;make -f $(RemoteProjectDir)/makefile DEBUG=TRUE</RemoteReBuildCommandLine>
+    <RemoteCleanCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile clean</RemoteCleanCommandLine>
+    <RemoteBuildOutputs>$(RemoteProjectDir)/nexus_cpuminer</RemoteBuildOutputs>
+    <LocalRemoteCopySources>true</LocalRemoteCopySources>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NMakeIncludeSearchPath>C:\deps62\gmp-6.1.1\;c:\deps62\boost_1_62_0</NMakeIncludeSearchPath>
+    <RemoteBuildCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile -j8</RemoteBuildCommandLine>
+    <RemoteReBuildCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile clean;make -f $(RemoteProjectDir)/makefile -j8</RemoteReBuildCommandLine>
+    <RemoteCleanCommandLine>cd $(RemoteProjectDir);make -f $(RemoteProjectDir)/makefile clean</RemoteCleanCommandLine>
+    <RemoteBuildOutputs>$(RemoteProjectDir)/nexus_cpuminer</RemoteBuildOutputs>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="config.cpp" />
+    <ClCompile Include="hash\Keccak-compact64.cpp" />
+    <ClCompile Include="hash\KeccakDuplex.cpp" />
+    <ClCompile Include="hash\KeccakHash.cpp" />
+    <ClCompile Include="hash\KeccakSponge.cpp" />
+    <ClCompile Include="hash\skein.cpp" />
+    <ClCompile Include="hash\skein_block.cpp" />
+    <ClCompile Include="miner.cpp" />
+    <ClCompile Include="mpi_mod_exp_redundant_WW.c" />
+    <ClCompile Include="oacc\AccSieve.cpp" />
+    <ClCompile Include="prime.cpp" />
+    <ClCompile Include="util.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="bignum.h" />
+    <ClInclude Include="config.h" />
+    <ClInclude Include="core.h" />
+    <ClInclude Include="hash\brg_endian.h" />
+    <ClInclude Include="hash\brg_types.h" />
+    <ClInclude Include="hash\crypto_hash.h" />
+    <ClInclude Include="hash\KeccakDuplex.h" />
+    <ClInclude Include="hash\KeccakF-1600-interface.h" />
+    <ClInclude Include="hash\KeccakHash.h" />
+    <ClInclude Include="hash\KeccakSponge.h" />
+    <ClInclude Include="hash\skein.h" />
+    <ClInclude Include="hash\skein_iv.h" />
+    <ClInclude Include="hash\skein_port.h" />
+    <ClInclude Include="hash\templates.h" />
+    <ClInclude Include="hash\uint1024.h" />
+    <ClInclude Include="mpi_RSAZ.h" />
+    <ClInclude Include="oacc\AccSieve.h" />
+    <ClInclude Include="types.h" />
+    <ClInclude Include="util.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="build\.gitkeep" />
+    <None Include="makefile" />
+    <None Include="makefile.unix" />
+    <None Include="miner.conf.pool-example">
+      <RemoteCopyFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</RemoteCopyFile>
+      <RemoteCopyFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</RemoteCopyFile>
+    </None>
+    <None Include="miner.conf.solo-example" />
+    <None Include="red2norm.s" />
+    <None Include="redundant_AVX2_AMM1024_asm.s" />
+    <None Include="redundant_AVX2_AMS1024_asm.s" />
+    <None Include="soloMining.bat" />
+    <None Include="soloMining.sh" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

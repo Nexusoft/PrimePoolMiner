@@ -1,12 +1,4 @@
-# Nexus (Coinshield) CPU Pool Miner: This is the enhanced and customized CPU Pool miner.
-
-- [x] Add (basic) config file functionality
-- [ ] Address all the build warnings
-- [ ] Improve command line operation
-- [ ] Profiling and perforfance tweaking
-- [x] Implement new upstream protocols
-- [ ] Multi Pool Switching
-- [ ] Interface Improvement - Colour!
+# Nexus CPU Pool/Solo Miner
 
 # Build instructions (Ubuntu)
 ### Install dependencies
@@ -19,30 +11,31 @@ sudo apt-get install build-essential libboost-all-dev libdb-dev libdb++-dev libs
 
 ```sh
 cd ~
-git clone https://github.com/Nexusoft/PrimePoolMiner.git PrimePoolMiner
+git clone https://github.com/hg5fm/PrimePoolMiner.git PrimePoolMiner
 ```
 
 ### Build the miner
 
 ```sh
 cd PrimePoolMiner
-make MARCHFLAGS=-march=native -f makefile.unix
+make MARCHFLAGS=-march=native -f makefile
 ```
 
 ### miner.conf
 The pool miner can now be configured via miner.conf.  An example file miner.conf.example is included.  
 Please copy/rename it to miner.conf in order to use it .
  
-You can adjust the parameters used to initialise the prime sieving / wheel factorisation to optimise the PPS/WPS for your CPU. 
+You can adjust the parameters used to initialise the prime sieving / wheel factorisation to optimise the prime chain rates (or WPS) for your CPU. 
 
-	"host": <the pool hostname / ipaddress to connect to> 
-	"port": <the pool port, default 9549>
-	"nxs_address": <your payout address>
-    "threads": <number of cores/threads to use, default is 0 (all available cores)
+	"host": <the pool hostname / ipaddress to connect to, in solo mode this should be the address of the NSX wallet node> 
+	"port": <the pool port, default 9549 for pool, for solo mining the default is 9325>
+	"nxs_address": <your payout address - if it's left empty ("") the miner will try to work in SOLO mode>
+	"sieve_threads": <number of threads to use for sieving, default is 0 (all available cores)
+	"ptest_threads": <number of threads to use for primality testing, default is 0 (all available cores)
 	"timeout": <timeout when connecting to pool, default 10s>
-	"bit_array_size": <the size of the prime sieve in bytes, default 37748736. Adjust this to suit your CPU cache size> 
-	"prime_limit": <max prime number used to initialise the sieve, default 71378571>
-	"n_prime_limit": <max inverses prime limit, default 4194304>
+	"bit_array_size": <the size of the prime sieve in bytes, default 8388608. Adjust this to suit your CPU cache size> 
+	"prime_limit": <max prime number used to initialise the sieve, default 71378571 - not in use at the current stage>
+	"n_prime_limit": <max inverses prime limit, default 4194304 - not in use at the current stage>
 	"primorial_end_prime": <largest primorial, default 12>
 
 ### Run the miner

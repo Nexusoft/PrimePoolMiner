@@ -17,12 +17,14 @@ namespace Core
 		strHost = "";
 		nPort = "9549"; // 9325 for solo
 		strNxsAddress = "2S4PPSznWfPVLtPJNpi8Ly46Wft3wGbayGkhaGzKLVcepmrhKTP";
-		nMiningThreads = 0; // 0 = use all threads
+		nSieveThreads = 0; // 0 = use all threads
+		nPTestThreads = 0; // 0 = use all threads
 		nTimeout = 10; 
 		nBitArraySize = 37748736; // 1024*1024*36
 		primeLimit = 71378571;
 		nPrimeLimit = 4194304;
 		nPrimorialEndPrime = 12;
+		bExperimental = true;
 	}
 
 	void MinerConfig::PrintConfig()
@@ -32,7 +34,8 @@ namespace Core
 		printf("Host: %s \n", strHost.c_str());
 		printf("Port: %s \n", nPort.c_str());
 		printf("Address: %s \n", strNxsAddress.c_str());
-		printf("Threads: %i \n", nMiningThreads);
+		printf("SieveThreads: %i \n", nSieveThreads);
+		printf("SieveThreads: %i \n", nPTestThreads);
 		printf("Timeout: %i \n", nTimeout);
 		printf("Bit Array Size: %u \n", nBitArraySize);
 		printf("Prime Limit: %u \n", primeLimit);
@@ -43,11 +46,11 @@ namespace Core
 
 	bool MinerConfig::ReadConfig()
 	{
-		printf("in read");
+		//printf("in read");
 		bool bSuccess = true;
 		try
 		{
-			printf("Reading config file miner.conf\n");
+			//printf("Reading config file miner.conf\n");
 			std::ifstream lConfigFile("miner.conf");
 			pt::ptree root;
 			pt::read_json("miner.conf", root);
@@ -73,10 +76,17 @@ namespace Core
 			{}
 			try
 			{
-				nMiningThreads = root.get<int>("threads");
+				nSieveThreads = root.get<int>("sieve_threads");
 			}
 			catch(...)
 			{}
+			try
+			{
+				nPTestThreads = root.get<int>("ptest_threads");
+			}
+			catch (...)
+			{
+			}
 			try
 			{
 				nTimeout = root.get<int>("timeout");
@@ -107,6 +117,15 @@ namespace Core
 			}
 			catch(...)
 			{}
+
+			try
+			{
+				bExperimental = root.get<bool>("experimental");
+			}
+			catch (...)
+			{
+			}
+
 		}
 		catch(...)
 		{

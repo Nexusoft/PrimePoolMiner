@@ -24,7 +24,8 @@ namespace Core
         std::string  strHost;
         std::string  nPort;
         std::string  strNxsAddress;
-        int          nMiningThreads;
+        int          nSieveThreads;
+		int          nPTestThreads;
         int 	     nTimeout;
 
 	// Detailed hash related config
@@ -32,6 +33,7 @@ namespace Core
         unsigned int primeLimit;
         unsigned int nPrimeLimit;
         unsigned int nPrimorialEndPrime;	
+		bool bExperimental;
 
 
 

@@ -1,10 +1,79 @@
 #ifndef COINSHIELD_LLP_CORE_H
 #define COINSHIELD_LLP_CORE_H
 
+#define _ENABLE_ATOMIC_ALIGNMENT_FIX	// for BOOST to compile in VS
+
+#include <stdlib.h>
 #include "types.h"
 #include <queue>
 #include "config.h"
+#include <boost/thread/thread.hpp>
+#include <boost/lockfree/queue.hpp>
+#include "mpi_RSAZ.h"
 
+
+namespace Core
+{
+	class CBlock
+	{
+	public:
+
+		/** Begin of Header.   BEGIN(nVersion) **/
+		unsigned int  nVersion;
+		uint1024 hashPrevBlock;
+		uint512 hashMerkleRoot;
+		unsigned int  nChannel;
+		unsigned int   nHeight;
+		unsigned int     nBits;
+		uint64          nNonce;
+		/** End of Header.     END(nNonce).
+		All the components to build an SK1024 Block Hash. **/
+
+		CBlock()
+		{
+			nVersion = 0;
+			hashPrevBlock = 0;
+			hashMerkleRoot = 0;
+			nChannel = 0;
+			nHeight = 0;
+			nBits = 0;
+			nNonce = 0;
+		}
+
+		uint1024 GetHash() const
+		{
+			return SK1024(BEGIN(nVersion), END(nBits));
+		}
+
+		CBigNum GetPrime() const
+		{
+			return CBigNum(GetHash() + nNonce);
+		}
+
+		void Set(CBlock block)
+		{
+			nVersion = block.nVersion;
+			hashPrevBlock = block.hashPrevBlock;
+			hashMerkleRoot = block.hashMerkleRoot;
+			nChannel = block.nChannel;
+			nHeight = block.nHeight;
+			nBits = block.nBits;
+			nNonce = block.nNonce;
+		}
+
+		void Set(CBlock * block)
+		{
+			nVersion = block->nVersion;
+			hashPrevBlock = block->hashPrevBlock;
+			hashMerkleRoot = block->hashMerkleRoot;
+			nChannel = block->nChannel;
+			nHeight = block->nHeight;
+			nBits = block->nBits;
+			nNonce = block->nNonce;
+		}
+
+	};
+}
 
 namespace LLP
 {
@@ -73,8 +142,42 @@ namespace LLP
 	
 	class Miner : public Outbound
 	{
+	private:
+		bool DeserializeSoloBlock(std::vector<unsigned char> DATA, Core::CBlock* BLOCK)
+		{
+			try
+			{
+				BLOCK->nVersion = bytes2uint(std::vector<unsigned char>(DATA.begin(), DATA.begin() + 4));
+
+				BLOCK->hashPrevBlock.SetBytes(std::vector<unsigned char>(DATA.begin() + 4, DATA.begin() + 132));
+				BLOCK->hashMerkleRoot.SetBytes(std::vector<unsigned char>(DATA.begin() + 132, DATA.end() - 20));
+
+				BLOCK->nChannel = bytes2uint(std::vector<unsigned char>(DATA.end() - 20, DATA.end() - 16));
+				BLOCK->nHeight = bytes2uint(std::vector<unsigned char>(DATA.end() - 16, DATA.end() - 12));
+				BLOCK->nBits = bytes2uint(std::vector<unsigned char>(DATA.end() - 12, DATA.end() - 8));
+				BLOCK->nNonce = bytes2uint64(std::vector<unsigned char>(DATA.end() - 8, DATA.end()));
+			}
+			catch (const std::exception&)
+			{
+				return false;
+			}
+			
+			return true;
+		}
+
+		Core::CBlock* DeserializeSoloBlock(std::vector<unsigned char> DATA)
+		{
+			Core::CBlock* BLOCK = new Core::CBlock();
+			if (DeserializeSoloBlock(DATA, BLOCK))
+				return BLOCK;
+			else
+				return NULL;
+		}
+
+		int nTimeout;
+
 	public:
-		Miner(std::string ip, std::string port) : Outbound(ip, port){}
+		Miner(std::string ip, std::string port, int timeout = 10) : Outbound(ip, port) { nTimeout = timeout; }
 		
 		enum
 		{
@@ -106,20 +209,40 @@ namespace LLP
 			CLOSE    = 254
 		};
 		
+		enum
+		{
+			/** DATA PACKETS **/
+			SOLO_BLOCK_DATA = 0,
+			SUBMIT_BLOCK = 1,
+			BLOCK_HEIGHT = 2,
+			SET_CHANNEL = 3,
+
+			/** REQUEST PACKETS **/
+			SOLO_GET_HEIGHT = 130,
+
+			/** DATA REQUESTS **/
+			CHECK_BLOCK = 64,
+			SUBSCRIBE = 65,
+
+			/** ROUND VALIDATIONS. **/
+			NEW_ROUND = 204,
+			OLD_ROUND = 205
+		};
+
 		
 		/** Current Newly Read Packet Access. **/
 		inline Packet NewPacket() { return this->INCOMING; }
 		
 		
 		/** Create a Packet with the Given Header. **/
-		inline Packet GetPacket(unsigned char HEADER)
+		inline Packet GetPacket(unsigned char HEADER, unsigned int nLength = 0)
 		{
 			Packet PACKET;
 			PACKET.HEADER = HEADER;
-			
+			PACKET.LENGTH = nLength;
 			return PACKET;
 		}
-		
+
 		
 		/** Get a new Block from the Pool Server. **/
 		inline void GetBlock()    { this -> WritePacket(GetPacket(GET_BLOCK));    }
@@ -127,8 +250,7 @@ namespace LLP
 		
 		/** Get your current balance in NXS that has not been included in a payout. **/
 		inline void GetBalance()  { this -> WritePacket(GetPacket(GET_BALANCE));  }
-		
-		
+				
 		/** Get the Current Pending Payouts for the Next Coinbase Tx. **/
 		inline void GetPayouts()  { this -> WritePacket(GetPacket(GET_PAYOUT)); }
 		
@@ -164,8 +286,7 @@ namespace LLP
 			printf("[MASTER] Logged in With Address: %s Bytes: %u\n", ADDRESS.c_str(), PACKET.LENGTH);
 			this->WritePacket(PACKET);
 		}
-		
-		
+			
 		/** Submit a Share to the Pool Server. **/
 		inline void SubmitShare(uint1024 nPrimeOrigin, uint64 nNonce)
 		{
@@ -178,16 +299,137 @@ namespace LLP
 			
 			this->WritePacket(PACKET);
 		}
+
+		// Solo Mining related
+		void SetChannel(unsigned int nChannel)
+		{
+			Packet packet = GetPacket(SET_CHANNEL, 4);
+			packet.DATA = uint2bytes(nChannel);
+			this->WritePacket(packet);
+		}
+		
+		void Subscribe(unsigned int nOfBlocks)
+		{
+			Packet packet = GetPacket(SUBSCRIBE, 4);
+			packet.DATA = uint2bytes(nOfBlocks);
+			this->WritePacket(packet);
+		}
+
+		Core::CBlock* GetSoloBlock()
+		{
+			this->WritePacket(GetPacket(GET_BLOCK));
+
+			Packet RESPONSE = ReadNextPacket(nTimeout);
+
+			if (RESPONSE.IsNull() || RESPONSE.DATA.size() == 0)
+				return NULL;
+
+			Core::CBlock* BLOCK = DeserializeSoloBlock(RESPONSE.DATA);
+			ResetPacket();
+
+			return BLOCK;
+		}
+
+		bool GetSoloBlock(Core::CBlock* block)
+		{
+			bool res = true;
+			this->WritePacket(GetPacket(GET_BLOCK));
+
+			Packet RESPONSE = ReadNextPacket(nTimeout);
+
+			if (RESPONSE.IsNull() || RESPONSE.DATA.size() == 0)
+				return false;
+
+			res = DeserializeSoloBlock(RESPONSE.DATA, block);
+			ResetPacket();
+
+			return res;
+		}
+		
+		
+		unsigned int GetHeight()
+		{
+			this->WritePacket(GetPacket(SOLO_GET_HEIGHT));
+
+			Packet RESPONSE = ReadNextPacket(nTimeout);
+
+			if (RESPONSE.IsNull() || RESPONSE.LENGTH == 0)
+				return 0;
+
+			unsigned int nHeight = bytes2uint(RESPONSE.DATA);
+			ResetPacket();
+
+			return nHeight;
+		}
+
+
+		unsigned char SubmitBlock(uint512 hashMerkleRoot, uint64 nNonce)
+		{
+			Packet PACKET;
+			PACKET.HEADER = SUBMIT_BLOCK;
+
+			PACKET.DATA = hashMerkleRoot.GetBytes();
+			std::vector<unsigned char> NONCE = uint2bytes64(nNonce);
+
+			PACKET.DATA.insert(PACKET.DATA.end(), NONCE.begin(), NONCE.end());
+			PACKET.LENGTH = 72;
+
+			this->WritePacket(PACKET);
+			Packet RESPONSE = ReadNextPacket(nTimeout);
+			if (RESPONSE.IsNull())
+				return 0;
+
+			ResetPacket();
+
+			return RESPONSE.HEADER;
+		}
 	};
 	
 }
+
+#define MAXCANDIDATESPERSIEVE 1000
+#define MAX_PRIME_TEST_JOBQUEUE_SIZE 1000
+#define MAX_SIEVE_JOBQUEUE_SIZE 256
+
+extern volatile uint64 sieveCandidateCount;
+extern volatile uint64 candidateCount;
+extern bool bUseExperimentalSieve;
 
 namespace Core
 {
 	class ServerConnection;
 	class MinerConfig;
-	extern unsigned int *primes;
-	extern unsigned int *inverses;
+
+	typedef struct
+	{
+		CBigNum	*	baseHash;
+		uint512	*	hashMerkleRoot;
+		unsigned long  * candidates;
+		mpz_ptr		zFirstSieveElement;
+		mpz_ptr		zPrimeOrigin;
+	}primeTestJob;
+
+	typedef struct
+	{
+		CBigNum	* baseHash;
+		uint512	* hashMerkleRoot;
+		uint64 nNonce;
+		unsigned int nDiff;
+	}submitBlockData;
+
+	typedef struct
+	{
+		CBlock 	pBlock;
+		uint1024 	primeOrigin;
+		uint16_t 	nStartOrigin;
+		uint16_t 	nMaxOriginCount;
+		uint32_t 	nMinimumShare;
+		uint32_t	nHeight;
+	}sieveJob;
+
+
+	extern unsigned long *primes;
+	extern unsigned long *inverses;
 	extern unsigned int nBitArray_Size;
 	extern mpz_t  zPrimorial;
 
@@ -196,21 +438,25 @@ namespace Core
 	extern unsigned int nPrimorialEndPrime;
 
 	extern uint64 octuplet_origins[];
+	extern uint64 tentuplet2_origins[];
 
 	void InitializePrimes();
 	unsigned int SetBits(double nDiff);
 	double GetPrimeDifficulty(CBigNum prime, int checks);
 	double GetSieveDifficulty(CBigNum next, unsigned int clusterSize);
 	unsigned int GetPrimeBits(CBigNum prime, int checks);
-	unsigned int GetFractionalDifficulty(CBigNum composite);
-	std::vector<unsigned int> Eratosthenes(int nSieveSize);
+	unsigned int GetFractionalDifficulty(CBigNum composite);	
 	bool DivisorCheck(CBigNum test);
 	unsigned long PrimeSieve(CBigNum BaseHash, unsigned int nDifficulty, unsigned int nHeight);
 	bool PrimeCheck(CBigNum test, int checks);
 	CBigNum FermatTest(CBigNum n, CBigNum a);
 	bool Miller_Rabin(CBigNum n, int checks);
 	
-	
+	int mp_exptmod(const mpz_ptr inBase, const mpz_ptr exponent, mpz_ptr modulus, mpz_ptr result);
+
+	void cpusieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
+
+
 	/** Class to hold the basic data a Miner will use to build a Block.
 		Used to allow one Connection for any amount of threads. **/
 	class MinerThread
@@ -219,13 +465,27 @@ namespace Core
 		ServerConnection* cServerConnection;
 		
 		uint1024 hashPrimeOrigin;
+		uint512 hashMerkleRoot;
 		unsigned int nMinimumShare;
-		bool fNewBlock, fBlockWaiting, fNewBlockRestart;
+		volatile bool fNewBlock, fBlockWaiting, fNewBlockRestart;
 		LLP::Thread_t THREAD;
 		LLP::Timer IDLE_TIME;
 		boost::mutex MUTEX;
+		uint64_t* bit_array_sieve;
 		
-		MinerThread(ServerConnection* cConnection) : cServerConnection(cConnection), fNewBlock(true), fBlockWaiting(false), fNewBlockRestart(true), THREAD(boost::bind(&MinerThread::PrimeMiner, this)) { }
+	
+
+
+		
+		MinerThread(ServerConnection* cConnection) : cServerConnection(cConnection), fNewBlock(true), fBlockWaiting(false), fNewBlockRestart(true), THREAD(boost::bind(&MinerThread::PrimeMiner, this)) 
+		{ 
+			bit_array_sieve = (uint64_t *)aligned_alloc(64, (nBitArray_Size) / 8);			
+		}
+
+		~MinerThread()
+		{
+			free(bit_array_sieve);
+		}
 
 		void PrimeMiner();
 	};
@@ -236,9 +496,18 @@ namespace Core
 	{
 	public:
 		LLP::Miner* CLIENT;
-		int nThreads, nTimeout;
+		int nPTestThreads , nSieveThreads, nTimeout;
+		bool bSoloMining;
 		std::vector<MinerThread*> THREADS;
+		
+		std::map<int, primeTestJob> primeTestJobs;
+		std::map<int, sieveJob *> sieveJobs;
+		uint16_t nSieveJobsQueueSize;
+
+		std::vector<LLP::Thread_t*> PRIMETESTTHREADS;
+
 		LLP::Thread_t THREAD;
+		LLP::Thread_t* STATUSTHREAD;
 		LLP::Timer    TIMER;
 		std::string   IP, PORT;
 		
@@ -246,19 +515,75 @@ namespace Core
 
 		std::queue<std::pair<uint1024, uint64> > SUBMIT_QUEUE;
 		std::queue<std::pair<uint1024, uint64> > RESPONSE_QUEUE;
+
+		boost::lockfree::queue<int> * sieveJobQueueActive;
+		boost::lockfree::queue<int> * sieveJobQueuePassive;
+
+		boost::lockfree::queue<submitBlockData> * submitBlockQueue;
+
+		boost::lockfree::queue<int> * pcJobQueueActive;
+		boost::lockfree::queue<int> * pcJobQueuePassive;
+
+		unsigned int nMinimumShare;
 		
-		ServerConnection(std::string ip, std::string port, int nMaxThreads, int nMaxTimeout) : IP(ip), PORT(port), TIMER(), nThreads(nMaxThreads), nTimeout(nMaxTimeout), THREAD(boost::bind(&ServerConnection::ServerThread, this))
+		ServerConnection(std::string ip, std::string port, int nMaxSThreads, int nMaxPTThreads, int nMaxTimeout, bool bSolo);
+
+		~ServerConnection()
 		{
-			for(int nIndex = 0; nIndex < nThreads; nIndex++)
-				THREADS.push_back(new MinerThread(this));
+			if (STATUSTHREAD != NULL)
+				delete STATUSTHREAD;
+			for (int nIndex = 0; nIndex < nPTestThreads; nIndex++)
+			{
+				if (PRIMETESTTHREADS[nIndex] != NULL)
+					delete PRIMETESTTHREADS[nIndex];
+			}
+			if (sieveJobQueueActive != NULL)
+				delete sieveJobQueueActive;
+			if(sieveJobQueuePassive != NULL)
+				delete sieveJobQueuePassive;
+			if (submitBlockQueue != NULL)
+				delete submitBlockQueue;
+			if (pcJobQueueActive != NULL)
+				delete pcJobQueueActive;
+			if (pcJobQueuePassive != NULL)
+				delete pcJobQueuePassive;
+
 		}
+
 		
 		/*** Reset the block on each of the Threads. ***/
 		void ResetThreads();
 		void SubmitShare(uint1024 hashPrimeOrigin, uint64 nNonce);
 		void ServerThread();
+		void PrintStats();
+		void SoloServerThread();
+		void PrintStatThread();
+
+		void PrimeTestThread();
+	};
+
+	class CPrimeTest
+	{
+
+	public:
+		mpz_t zTwo;
+		mpz_t zNm1; /* "zNm1" = "zP minus one" */
+		mpz_t zR;
+		mpz_t zN;
+		int has_avx;
+		int has_avx2;
+		int use_avx2;
+		const uint64 Primorial = zPrimorial->_mp_d[0];
+
+		CPrimeTest();
+
+		bool FermatTest();
+
+		int FindTuples(unsigned long * candidates, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, std::vector<std::pair<uint64_t, uint16_t>> * nonces);
 
 	};
+
+
 }
 
 

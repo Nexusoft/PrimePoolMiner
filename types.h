@@ -24,9 +24,13 @@ namespace LLP
 	private:
 		boost::posix_time::ptime TIMER_START, TIMER_END;
 		boost::mutex             TIMER_MUTEX;
-		bool fStopped = false;
+		bool fStopped;
 	
 	public:
+		Timer()
+		{
+			fStopped = false;
+		}
 		inline void Start() { LOCK(TIMER_MUTEX); TIMER_START = boost::posix_time::microsec_clock::local_time(); fStopped = false; }
 		inline void Reset() { Start(); }
 		inline void Stop()  { LOCK(TIMER_MUTEX); TIMER_END = boost::posix_time::microsec_clock::local_time(); fStopped = true; }
@@ -242,7 +246,7 @@ namespace LLP
 		
 		
 		/** Checks for any flags in the Error Handle. **/
-		bool Errors(){ return (ERROR_HANDLE == boost::asio::error::eof || ERROR_HANDLE); }
+		bool Errors(){ return (ERROR_HANDLE == boost::asio::error::eof || ERROR_HANDLE == boost::asio::error::connection_reset || ERROR_HANDLE); }
 				
 				
 		/** Determines if nTime seconds have elapsed since last Read / Write. **/
@@ -318,10 +322,12 @@ namespace LLP
 		
 		/** Disconnect Socket. **/
 		void Disconnect()
-		{
-			if(!CONNECTED || Errors())
-				return;
-				
+		{			
+			printf("Disconnecting!!!!\n");
+			TIMER.Reset();
+			ERROR_HANDLE.clear();
+			if(!CONNECTED)
+				return;				
 			try
 			{
 				SOCKET -> shutdown(boost::asio::ip::tcp::socket::shutdown_both, ERROR_HANDLE);
@@ -336,12 +342,44 @@ namespace LLP
 	private:
 		
 		/** Lower level network communications: Read. Interacts with OS sockets. **/
-		size_t Read(std::vector<unsigned char> &DATA, size_t nBytes) { if(Errors()) return 0; TIMER.Reset(); return  boost::asio::read(*SOCKET, boost::asio::buffer(DATA, nBytes), ERROR_HANDLE); }
+		size_t Read(std::vector<unsigned char> &DATA, size_t nBytes)
+		{
+			try
+			{
+
+				if (Errors()) return 0;
+				TIMER.Reset();
+				auto res = boost::asio::read(*SOCKET, boost::asio::buffer(DATA, nBytes), ERROR_HANDLE);
+				if (Errors())
+				{
+					printf("Error reading from socket!\n");
+					Disconnect();
+					return 0;
+				}
+				return res;
+			}
+			catch (...) {}
+
+		}
 							
 				
 				
 		/** Lower level network communications: Write. Interacts with OS sockets. **/
-		void Write(std::vector<unsigned char> DATA) { if(Errors()) return; TIMER.Reset(); boost::asio::write(*SOCKET, boost::asio::buffer(DATA, DATA.size()), ERROR_HANDLE); }
+		void Write(std::vector<unsigned char> DATA) 
+		{ 
+			try
+			{
+				if (Errors()) return;
+				TIMER.Reset();
+				boost::asio::write(*SOCKET, boost::asio::buffer(DATA, DATA.size()), ERROR_HANDLE);
+				if (Errors())
+				{
+					printf("Error writing to socket!\n");
+					Disconnect();
+				}
+			}
+			catch (...) {}
+		}
 
 	};
 

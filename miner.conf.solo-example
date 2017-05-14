@@ -1,0 +1,14 @@
+{
+  "host": "localhost",
+  "port": "9325",
+  "nxs_address": "",
+  "sieve_threads": 0,
+  "ptest_threads": 0,
+  "timeout": 10,
+  "bit_array_size": 8388608,
+  "prime_limit": 7137857100,
+  "n_prime_limit": 81920,
+  "primorial_end_prime": 12,
+  "experimental": "true"
+
+}
