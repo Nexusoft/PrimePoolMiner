@@ -9,6 +9,7 @@
 #include "config.h"
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/queue.hpp>
+#include "mpi_RSAZ.h"
 
 
 namespace Core
@@ -391,6 +392,7 @@ namespace LLP
 #define MAX_SIEVE_JOBQUEUE_SIZE 256
 
 extern volatile uint64 sieveCandidateCount;
+extern volatile uint64 candidateCount;
 extern bool bUseExperimentalSieve;
 
 namespace Core
@@ -450,6 +452,8 @@ namespace Core
 	CBigNum FermatTest(CBigNum n, CBigNum a);
 	bool Miller_Rabin(CBigNum n, int checks);
 	
+	int mp_exptmod(const mpz_ptr inBase, const mpz_ptr exponent, mpz_ptr modulus, mpz_ptr result);
+
 	void cpusieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
 
 
@@ -557,6 +561,29 @@ namespace Core
 
 		void PrimeTestThread();
 	};
+
+	class CPrimeTest
+	{
+
+	public:
+		mpz_t zTwo;
+		mpz_t zNm1; /* "zNm1" = "zP minus one" */
+		mpz_t zR;
+		mpz_t zN;
+		int has_avx;
+		int has_avx2;
+		int use_avx2;
+		const uint64 Primorial = zPrimorial->_mp_d[0];
+
+		CPrimeTest();
+
+		bool FermatTest();
+
+		int FindTuples(unsigned long * candidates, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, std::vector<std::pair<uint64_t, uint16_t>> * nonces);
+
+	};
+
+
 }
 
 

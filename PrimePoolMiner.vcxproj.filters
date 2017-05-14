@@ -54,6 +54,9 @@
     <ClCompile Include="hash\skein.cpp">
       <Filter>hash</Filter>
     </ClCompile>
+    <ClCompile Include="mpi_mod_exp_redundant_WW.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bignum.h">
@@ -110,16 +113,26 @@
     <ClInclude Include="hash\KeccakHash.h">
       <Filter>hash</Filter>
     </ClInclude>
+    <ClInclude Include="mpi_RSAZ.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="makefile" />
     <None Include="build\.gitkeep" />
-    <None Include="miner.conf.example" />
-    <None Include="miner.conf" />
-    <None Include="soloMining.bat">
+    <None Include="soloMining.sh" />
+    <None Include="soloMining.bat" />
+    <None Include="makefile.unix" />
+    <None Include="miner.conf.pool-example" />
+    <None Include="miner.conf.solo-example" />
+    <None Include="red2norm.s">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="soloMining.sh" />
-    <None Include="build.sh" />
+    <None Include="redundant_AVX2_AMM1024_asm.s">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="redundant_AVX2_AMS1024_asm.s">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

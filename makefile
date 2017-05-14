@@ -46,11 +46,15 @@ endif
 $(info $(DEBUG))
 ifeq ($(DEBUG),TRUE)
 	CXXFLAGS=-ggdb -ffunction-sections -O0
+	DEBUGFLAGS=-ggdb -ffunction-sections -O0
 else
 	CXXFLAGS=-Ofast
+	DEBUGFLAGS=-O2
 endif
 
-xCXXFLAGS= -std=gnu++11 -pthread -m64 -static-libgcc -static-libstdc++ -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security $(DEBUGFLAGS) $(DEFS) $(CXXFLAGS) $(MARCHFLAGS)
+CCFLAGS= $(DEBUGFLAGS) -g2 -gdwarf-2 -Wall -Wswitch -W"no-deprecated-declarations" -W"empty-body" -Wconversion -W"return-type" -Wparentheses -W"no-pointer-sign" -W"no-format" -Wuninitialized -W"unreachable-code" -W"unused-function" -W"unused-value" -W"unused-variable" -Wswitch -W"no-deprecated-declarations" -W"empty-body" -Wconversion -W"return-type" -Wparentheses -W"no-format" -Wuninitialized -W"unreachable-code" -W"unused-function" -W"unused-value" -W"unused-variable" -fno-strict-aliasing -fno-omit-frame-pointer -DHAVE_STRERROR -DLINUX -Dlinux -DXP_UNIX -D"SHLIB_SUFFIX=\"so\"" -D"SHLIB_PREFIX=\"lib\"" -D"SHLIB_VERSION=\"3\"" -D"SOFTOKEN_SHLIB_VERSION=\"3\"" -DRIJNDAEL_INCLUDE_TABLES -DNDEBUG -D_REENTRANT -DNSS_NO_INIT_SUPPORT -DUSE_UTIL_DIRECTLY -DNO_NSPR_10_SUPPORT -DSSL_DISABLE_DEPRECATED_CIPHER_SUITE_NAMES -DNSS_USE_64 -DFREEBL_NO_DEPEND -DFREEBL_LOWHASH -DNSS_X86_OR_X64 -DNSS_X64 -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY -DNSS_USE_COMBA -DMP_IS_LITTLE_ENDIAN -DUSE_HW_AES -DINTEL_GCM -DMODEXP_AVX2_ASM -DHAVE_INT128_SUPPORT -DMP_API_COMPATIBLE -fthreadsafe-statics -fexceptions -fPIC #-Wa,--noexecstack
+
+xCXXFLAGS= -std=gnu++11 -pthread -m64 -static-libgcc -static-libstdc++ -Wno-sign-compare -Wno-invalid-offsetof -Wno-unused-parameter -Wformat -Wformat-security $(DEFS) $(CXXFLAGS) $(MARCHFLAGS)
 
 ifdef PGI
 $(info Using PGI OpenACC compiler)
@@ -83,7 +87,11 @@ OBJS= \
 	$(OUT_DIR)/util.o \
 	$(OUT_DIR)/prime.o \
 	$(OUT_DIR)/miner.o \
-	$(OUT_DIR)/config.o
+	$(OUT_DIR)/config.o \
+	$(OUT_DIR)/red2norm.o \
+	$(OUT_DIR)/redundant_AVX2_AMM1024_asm.o \
+	$(OUT_DIR)/redundant_AVX2_AMS1024_asm.o \
+	$(OUT_DIR)/mpi_mod_exp_redundant_WW.o
 
 OBJECTS = $(patsubst %.cpp,%.o,$(wildcard oacc/*.c*))
 
@@ -95,7 +103,15 @@ liboaccminer$(DLL): $(OUT_DIR)/$(OBJECTS)
 $(OUT_DIR)/oacc/%.o: oacc/%.cpp
 	@mkdir -p $(@D)
 	$(PGCXX) $(PGCXXFLAGS) $(ACCFLAGS) -o $@ -c $<
-	
+
+$(OUT_DIR)/%.o: %.s $(HEADERS)
+	@mkdir -p $(@D)
+	$(CC) -c $(CCFLAGS) -o $@ $<
+
+$(OUT_DIR)/%.o: %.c $(HEADERS)
+	@mkdir -p $(@D)
+	$(CC) -c $(CCFLAGS) -o $@ $<
+
 
 $(OUT_DIR)/%.o: %.cpp $(HEADERS)
 	@mkdir -p $(@D)
@@ -123,7 +139,7 @@ $(OUT_DIR)/%.o: hash/%.cpp $(HEADERS)
 
 
 nexus_cpuminer: $(OBJS:obj/%=$(OUT_DIR)/%) liboaccminer$(DLL)
-	$(CXX) $(xCXXFLAGS) -rdynamic -o $@ $^ $(LDFLAGS) -loaccminer $(LIBS) $(PGLIBS) $(ACCLIBSFLAGS) 
+	$(CXX) -pthread -m64 -static-libgcc -Wl,--no-undefined -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -rdynamic -o $@ $^ $(LDFLAGS) -loaccminer $(LIBS) $(PGLIBS) $(ACCLIBSFLAGS) 
 
 clean:
 	-rm -f nexus_cpuminer$(EXE)

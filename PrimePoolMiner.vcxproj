@@ -99,6 +99,7 @@
     <ClCompile Include="hash\skein.cpp" />
     <ClCompile Include="hash\skein_block.cpp" />
     <ClCompile Include="miner.cpp" />
+    <ClCompile Include="mpi_mod_exp_redundant_WW.c" />
     <ClCompile Include="oacc\AccSieve.cpp" />
     <ClCompile Include="prime.cpp" />
     <ClCompile Include="util.cpp" />
@@ -119,19 +120,23 @@
     <ClInclude Include="hash\skein_port.h" />
     <ClInclude Include="hash\templates.h" />
     <ClInclude Include="hash\uint1024.h" />
+    <ClInclude Include="mpi_RSAZ.h" />
     <ClInclude Include="oacc\AccSieve.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="build.sh" />
     <None Include="build\.gitkeep" />
     <None Include="makefile" />
-    <None Include="miner.conf">
+    <None Include="makefile.unix" />
+    <None Include="miner.conf.pool-example">
       <RemoteCopyFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</RemoteCopyFile>
       <RemoteCopyFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</RemoteCopyFile>
     </None>
-    <None Include="miner.conf.example" />
+    <None Include="miner.conf.solo-example" />
+    <None Include="red2norm.s" />
+    <None Include="redundant_AVX2_AMM1024_asm.s" />
+    <None Include="redundant_AVX2_AMS1024_asm.s" />
     <None Include="soloMining.bat" />
     <None Include="soloMining.sh" />
   </ItemGroup>

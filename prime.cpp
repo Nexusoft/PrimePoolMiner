@@ -8,6 +8,8 @@
 
 #include "core.h"
 #include <map>
+
+#include "oacc/AccSieve.h"
 using namespace std;
 
 
@@ -51,6 +53,138 @@ namespace Core
 
 	uint64 tentuplet2_origins[] = { 7908189600581,10527733922591,12640876669691,38545620633251,43564522846961, // these first lines are 11-tuple p12
 		33081664151,83122625471,294920291201,573459229151,663903555851,688697679401,730121110331,1044815397161,1089869189021,1108671297731,1235039237891,1291458592421,1738278660731,1761428046221,1769102630411,1804037746781,1944541048181,2135766611591,2177961410741,2206701370871,2395426439291,2472430065221,2601621164951,2690705555381,2744825921681,2745579799421,2772177619481,2902036214921,3132826508081,3447850801511,3640652828621,3692145722801,4136896626671,4360784021591,4563595602101,4582294051871,4700094892301,5289415841441,5308007072981,5351833972601,5731733114951,5912642968691,5923626073901,6218504101541,7353767766461,7535450701391,7559909355611,9062538296081,9494258167391,9898228819091,11808683662661,12424633023611,12467997477821,12471156096011,12637149919391,12661770282431,12941332539251,13083931936961,13177285036031,13281538177751,13474617984671,13564397742431,14214158076731,14528577634841,14935307623121,15257534367611,15771001151441,15948208421681,16647704227151,17267454870551,17365931298251,17813681998571,17938517636771,18091735543151,18947646459011,19538901887621,19577485120001,20054859604511,20097538393391,20516952834221,20790089458751,20933920839101,21807698163521,21939572224301,23280376374371,23960929422161,25419097742651,25923673657151,25965833629271,26019670276331,26101057210841,26788150277501,27305074486421,27809177299901,28027335501701,28058118894341,28609991312711,29215723742321,29321817997931,29415143182961,29734781696351,30066514250231,30306643155401,30491978649941,32031885520751,32077660213211,32078946815801,32177891258321,32195059349261,32389598962991,32685957713021,32768010337871,32834252076161,33257396547491,33276520972811,33553699164521,33922370507141,35218098176531,36238457306321,36324444201581,36340570852121,36608331995351,36671136130241,36683401486001,36822642941081,36884191543931,37824019474511,38029448791331,39527072005691,39800828518721,40787955947351,40865589988031,41793740194091,42543399451361,43063568783771,43443517990331,44303507303171,45436752056231,45483573547871,46461061347971,46678045878461,46902845784911,46950720918371,48809302182911,48973645093181,49249629233921,50164585605131,51819088949471 };
+
+
+
+	CPrimeTest::CPrimeTest()
+	{
+		const char zTmpPrimeHex[] = "b6122b34ba26087abc80aaa2f75c48d772ec4f8e377ced162efc9a56c167f42ddec5ddcac936f3a0e4ae928b8f61ce451221bd6e71291c0717a667a1418a6bfdb5b1aba05b4d3d5a170e50e05a0d11c4d40075d5cc84625c0bd378f361ed8c438c47b2731dd93f7dfa26ca0f582fca850dafe98bd5c64e8c127462b202ac1bb7";
+			
+		mpz_init_set_str(zN, zTmpPrimeHex, 16);
+		mpz_init_set(zTwo, zN);
+		mpz_set_ui(zTwo, 2);			
+		mpz_init(zNm1);
+		mpz_sub_ui(zNm1, zN, 1L);
+		mpz_init(zR);
+		mpz_pow_ui(zR, zN, 2); /* mpz_powm_ui needs excessive memory so preallocate 2x more!!! */
+
+		unsigned long eax, ebx, ecx, edx;
+		freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
+		has_avx = (ecx & (1 << 28)) != 0 ? 1 : -1;
+		freebl_cpuid(7, &eax, &ebx, &ecx, &edx);
+		has_avx2 = (ebx & (1 << 5)) != 0 ? 1 : -1;
+		use_avx2 = (has_avx > 0) && (has_avx2 > 0);
+		//use_avx2 = 0;
+	}
+
+	bool CPrimeTest::FermatTest()
+	{
+
+		zNm1->_mp_d[0] = zN->_mp_d[0] - 1;
+		if (use_avx2)
+		{ 
+			mp_exptmod(zTwo, zNm1, zN, zR);
+		}
+		else
+		{
+			mpz_powm(zR, zTwo, zNm1, zN);	
+		}
+		if (mpz_cmp_ui(zR, 1L) != 0)
+		{
+			return false;
+		}
+		return true;
+	}
+
+	int CPrimeTest::FindTuples(unsigned long * candidates, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, std::vector<std::pair<uint64_t, uint16_t>> * nonces)
+	{
+		int n1stPrimeSearchLimit = 0;
+		int cx = 0;
+		int nPrimes = 0;
+
+		mpz_sub(zN, zFirstSieveElement, zPrimeOrigin);
+		uint64_t nonce = zN->_mp_d[0];
+			
+		mpz_set(zN, zFirstSieveElement);
+		mpz_set(zNm1, zFirstSieveElement);
+		const mp_limb_t d0 = zN->_mp_d[0];
+		//const mp_limb_t d1 = zN->_mp_d[1];
+		int firstPrimeAt;
+
+		uint16_t nStart, nStop, nPrimeCount, nLastOffset;
+		while (candidates[cx] != -1 && cx < MAXCANDIDATESPERSIEVE)
+		{
+			cx++;
+
+			zN->_mp_d[0] = d0;
+			//zN->_mp_d[1] = d1;
+			const uint64_t n = Primorial * candidates[cx];
+			zN->_mp_d[0] += n;
+			const uint64_t tmp = zN->_mp_d[0];
+			zN->_mp_d[0] += 18;
+			if (FermatTest())
+			{
+				n1stPrimeSearchLimit = 12;
+			}
+			else
+			{
+				zN->_mp_d[0] += 2; // n+20
+				if (FermatTest())
+				{
+					//candidateHit2Count++;
+					n1stPrimeSearchLimit = 18;
+				}
+				else
+					continue;
+			}
+			//candidateHitCount++;
+			nPrimes++;
+
+
+			zN->_mp_d[0] = tmp;
+			nStop = 0; nPrimeCount = 0; nLastOffset = 0; firstPrimeAt = -1;
+			double diff = 0;
+
+			for (nStart = 0; nStart <= nStop + 12; nStart += 2)
+			{
+				//if (nStart == 4 || nStart == 14 || nStart == 22 || nStart == 10 || nStart == 14 || nStart == 16 || nStart == 24)
+				//{
+				//	mpz_add_ui(zTempVar, zTempVar, 2);
+				//	nLastOffset += 2;
+				//	continue;
+				//}
+
+				if (FermatTest())
+				{
+					nStop = nStart;
+					nPrimeCount++;
+
+				}
+				if (nPrimeCount == 0 && nStart >= n1stPrimeSearchLimit)
+					break;
+
+				if ((firstPrimeAt == -1 && nPrimeCount == 1))
+				{
+					//mpz_set(zPrimeOriginOffset, zTempVar); // zPrimeOriginOffset = zTempVar
+					firstPrimeAt = nStart;
+				}
+
+				zN->_mp_d[0] += 2;
+				nLastOffset += 2;
+			}
+
+			if (nPrimeCount >= 3)
+			{
+				uint64_t nNonce = nonce + n + firstPrimeAt;
+				nonces->push_back(std::pair<uint64_t, uint16_t>(nNonce, nPrimeCount));
+			}
+		}
+	candidateCount += cx;
+	//if (nonces->size() > 0)
+	//	printf("Found %u %u+ tuples out of %u candidates\n", nonces->size(), nMinimumPrimeCount, cx);
+	return nPrimes;
+	}
+
 
 
 	inline int64 GetTimeMicros() 
@@ -481,6 +615,53 @@ namespace Core
 	bool Miller_Rabin(CBigNum n, int checks)
 	{
 		return (BN_is_prime(&n, checks, NULL, NULL, NULL) == 1);
+	}
+
+
+	/* Compute T = (P ** -1) mod MP_RADIX.  Also works for 16-bit mp_digits.
+	** This technique from the paper "Fast Modular Reciprocals" (unpublished)
+	** by Richard Schroeppel (a.k.a. Captain Nemo).
+	*/
+	mp_digit s_mp_invmod_radix(mp_digit P)
+	{
+		mp_digit T = P;
+		T *= 2 - (P * T);
+		T *= 2 - (P * T);
+		T *= 2 - (P * T);
+		T *= 2 - (P * T);
+#if !defined(MP_USE_UINT_DIGIT)
+		T *= 2 - (P * T);
+		T *= 2 - (P * T);
+#endif
+		return T;
+	}
+
+#define MPZ_DIGIT(MP, N) (MP)->_mp_d[(N)]
+
+	int mp_exptmod(const mpz_ptr inBase, const mpz_ptr exponent, mpz_ptr modulus, mpz_ptr result)
+	{
+		mp_digit n0;
+		mpz_t RR;
+		mp_digit a_locl[32] = { 0 };
+
+		mpz_init(RR);
+		mpz_set_ui(RR, 1);
+		mpz_mul_2exp(RR, RR, modulus->_mp_size * 2 * 64);
+		mpz_mod(RR, RR, modulus);
+		n0 = 0 - s_mp_invmod_radix(MPZ_DIGIT(modulus, 0));
+
+		memcpy(a_locl, inBase->_mp_d, inBase->_mp_size * 8);
+
+		if (!RSAZ_redundant_mod_exponent((mp_digit*)result->_mp_d, a_locl, (mp_digit*)exponent->_mp_d, (mp_digit *) modulus->_mp_d, (mp_digit*)RR->_mp_d, n0, 1024, 1024, 0))
+		{
+			return MP_MEM;
+		}
+		result->_mp_size = modulus->_mp_size;
+		while ((result->_mp_d[result->_mp_size - 1] == 0) && result->_mp_size > 0) result->_mp_size--;
+
+		mpz_clear(RR);
+
+		return MP_OKAY;
 	}
 }
 

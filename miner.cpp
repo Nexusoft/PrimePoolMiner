@@ -7,6 +7,13 @@
 
 #pragma GCC optimize ("unroll-loops")
 
+
+#ifdef __CYGWIN__
+#define SLASH "\\"
+#else
+#define SLASH "/"
+#endif
+
 volatile unsigned int nBestHeight = 0;
 unsigned int nStartTimer = 0;
 volatile uint64 nWeight = 0;
@@ -990,6 +997,7 @@ namespace Core
 	void ServerConnection::PrimeTestThread()
 	{
 		//printf("Starting Prime test thread!\n");
+		CPrimeTest primeTest;
 		loop
 		{
 			if (exitSignal)
@@ -1008,7 +1016,8 @@ namespace Core
 
 				std::vector<std::pair<uint64_t,uint16_t>>  nonces;
 				int64 nStartTime = GetTimeMicros();
-				nPrimes += find_tuples2(job.candidates, zPrimorial, job.zPrimeOrigin, job.zFirstSieveElement, 3, &nonces);
+				nPrimes += primeTest.FindTuples(job.candidates, job.zPrimeOrigin, job.zFirstSieveElement, &nonces);
+				//nPrimes += find_tuples2(job.candidates, zPrimorial, job.zPrimeOrigin, job.zFirstSieveElement, 3, &nonces);
 				pTestTime += (GetTimeMicros() - nStartTime);
 				testCount++;
 				pcJobQueuePassive->push(jobId);
@@ -1119,12 +1128,14 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		printf("Config file not available... using command line\n");
+		printf("'miner.conf' config file not available... using command line\n");
 		if (argc < 4)
 		{
 			printf("Too Few Arguments. The Required Arguments are 'IP PORT ADDRESS'\n");
 			printf("Default Arguments are Total Threads = CPU Cores and Connection Timeout = 10 Seconds\n");
-			printf("Format for Arguments is 'IP PORT ADDRESS THREADS TIMEOUT'\n");
+			printf("Format for Arguments is 'IP PORT ADDRESS SIEVE-THREADS PRIMETEST-THREADS TIMEOUT'\n");
+			printf("Solo mining example: ."); printf(SLASH); printf("nexus_cpuminer localhost 9325 \"\"\n");
+			printf("Pool mining example: ."); printf(SLASH); printf("nexus_cpuminer nexusminingpool.com 9549 2SSbxVqakuEQeTLk8cgGKeWCiVrsyJtFMrvKxJDmuY3nRAmr2uJ\n");
 			Sleep(10000);
 			return 0;
 		}
