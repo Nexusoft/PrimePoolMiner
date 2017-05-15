@@ -66,7 +66,9 @@ namespace Core
 		mpz_init(zNm1);
 		mpz_sub_ui(zNm1, zN, 1L);
 		mpz_init(zR);
-		mpz_pow_ui(zR, zN, 2); /* mpz_powm_ui needs excessive memory so preallocate 2x more!!! */
+		//mpz_pow_ui(zR, zN, 2); /* mpz_powm_ui needs excessive memory so preallocate 2x more!!! */
+		mpz_realloc(zR, zN->_mp_size * 2);
+		
 
 		unsigned long eax, ebx, ecx, edx;
 		freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
@@ -77,22 +79,24 @@ namespace Core
 		//use_avx2 = 0;
 	}
 
-	bool CPrimeTest::FermatTest()
+	bool CPrimeTest::FermatTest(bool useTrialDivision)
 	{
+		if (useTrialDivision)
+		{
+			mp_limb_t r = mpn_preinv_mod_1(zN->_mp_d, (mp_size_t)zN->_mp_size, (mp_limb_t)PP, (mp_limb_t)PP_INVERTED);
+			if (r % 3 == 0 || r % 5 == 0 || r % 7 == 0 || r % 11 == 0 || r % 13 == 0 || r % 17 == 0 || r % 19 == 0 || r % 23 == 0 || r % 29 == 0 || r % 31 == 0 || r % 37 == 0 || r % 41 == 0 || r % 43 == 0 || r % 47 == 0 || r % 53 == 0)
+				return false;
+		}
 
 		zNm1->_mp_d[0] = zN->_mp_d[0] - 1;
+		zNm1->_mp_d[1] = zN->_mp_d[1];
 		if (use_avx2)
-		{ 
 			mp_exptmod(zTwo, zNm1, zN, zR);
-		}
 		else
-		{
 			mpz_powm(zR, zTwo, zNm1, zN);	
-		}
+
 		if (mpz_cmp_ui(zR, 1L) != 0)
-		{
 			return false;
-		}
 		return true;
 	}
 
@@ -108,7 +112,7 @@ namespace Core
 		mpz_set(zN, zFirstSieveElement);
 		mpz_set(zNm1, zFirstSieveElement);
 		const mp_limb_t d0 = zN->_mp_d[0];
-		//const mp_limb_t d1 = zN->_mp_d[1];
+		const mp_limb_t d1 = zN->_mp_d[1];
 		int firstPrimeAt;
 
 		uint16_t nStart, nStop, nPrimeCount, nLastOffset;
@@ -117,48 +121,62 @@ namespace Core
 			cx++;
 
 			zN->_mp_d[0] = d0;
-			//zN->_mp_d[1] = d1;
-			const uint64_t n = Primorial * candidates[cx];
-			zN->_mp_d[0] += n;
+			zN->_mp_d[1] = d1;
+			const uint64_t n = Primorial * candidates[cx];			
+			mpz_add_ui(zN, zN, n);
 			const uint64_t tmp = zN->_mp_d[0];
-			zN->_mp_d[0] += 18;
+			mpz_add_ui(zN, zN, 18);
 			if (FermatTest())
 			{
 				n1stPrimeSearchLimit = 12;
 			}
 			else
 			{
-				zN->_mp_d[0] += 2; // n+20
+				mpz_add_ui(zN, zN, 2); // n+20
 				if (FermatTest())
 				{
 					//candidateHit2Count++;
 					n1stPrimeSearchLimit = 18;
 				}
 				else
+					//{ 					
+					//	mpz_add_ui(zN, zN, 6);
+					//	if (FermatTest())
+					//		n1stPrimeSearchLimit = 20;
+					//	else
+					//		continue;
+					//}
 					continue;
+				
 			}
 			//candidateHitCount++;
 			nPrimes++;
 
 
 			zN->_mp_d[0] = tmp;
+			//zN->_mp_d[1] = d1;
 			nStop = 0; nPrimeCount = 0; nLastOffset = 0; firstPrimeAt = -1;
 			double diff = 0;
-
+			bool bTrialDiv = false;
 			for (nStart = 0; nStart <= nStop + 12; nStart += 2)
 			{
-				//if (nStart == 4 || nStart == 14 || nStart == 22 || nStart == 10 || nStart == 14 || nStart == 16 || nStart == 24)
+				
+				if (nStart == 4 || nStart == 10 || nStart == 14 || nStart == 16 || nStart == 22 || nStart == 24 || nStart == 28 || nStart == 34)
+					bTrialDiv = true;
+				else
+					bTrialDiv = false;
+
 				//{
-				//	mpz_add_ui(zTempVar, zTempVar, 2);
+				//	mpz_add_ui(zN, zN, 2);
 				//	nLastOffset += 2;
 				//	continue;
 				//}
 
-				if (FermatTest())
+				if (FermatTest(bTrialDiv))
+				//if (mpz_probab_prime_p(zN, 0) > 0) // use this until implement trial division in FermatTest
 				{
 					nStop = nStart;
 					nPrimeCount++;
-
 				}
 				if (nPrimeCount == 0 && nStart >= n1stPrimeSearchLimit)
 					break;
@@ -169,7 +187,7 @@ namespace Core
 					firstPrimeAt = nStart;
 				}
 
-				zN->_mp_d[0] += 2;
+				mpz_add_ui(zN, zN, 2);
 				nLastOffset += 2;
 			}
 

@@ -577,7 +577,11 @@ namespace Core
 
 		CPrimeTest();
 
-		bool FermatTest();
+#define PP 0xE221F97C30E94E1DL	/* 3 x 5 x 7 x 11 x ... x 53 */
+#define PP_INVERTED 0x21CFE6CFC938B36BL
+#define PP_FIRST_OMITTED 59
+
+		bool FermatTest(bool useTrialDivision = false);
 
 		int FindTuples(unsigned long * candidates, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, std::vector<std::pair<uint64_t, uint16_t>> * nonces);
 
