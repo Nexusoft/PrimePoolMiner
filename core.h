@@ -393,6 +393,9 @@ namespace LLP
 
 extern volatile uint64 sieveCandidateCount;
 extern volatile uint64 candidateCount;
+extern volatile uint64 candidateHitCount;
+extern volatile uint64 candidateHit2Count;
+
 extern bool bUseExperimentalSieve;
 
 namespace Core
@@ -437,8 +440,10 @@ namespace Core
 	extern unsigned int nPrimeLimit;
 	extern unsigned int nPrimorialEndPrime;
 
+
 	extern uint64 octuplet_origins[];
 	extern uint64 tentuplet2_origins[];
+	extern uint64 a13tuplet_origins[];
 
 	void InitializePrimes();
 	unsigned int SetBits(double nDiff);

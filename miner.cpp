@@ -41,7 +41,7 @@ bool bSoloMining = false;
 volatile bool exitSignal = false;
 std::string ADDRESS;
 uint64 nCurrentPayout = 0, nAccountBalance = 0;
-bool bUseExperimentalSieve;
+bool bUseExperimentalSieve = true;
 
 static LLP::Timer cPrimeTimer;
 std::deque<double> vPPSValues;
@@ -341,7 +341,7 @@ namespace Core
 
 
 		const uint16_t maxJobs = nSieveThreads * 3;
-		const uint16_t originSegmentSize = floor(153.0 / (float)nSieveThreads);
+		const uint16_t originSegmentSize = floor(189.0 / (float)nSieveThreads);
 
 		bool bBlockRequestSent = false;
 		loop
@@ -1128,6 +1128,7 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
+		bUseExperimentalSieve = true;
 		printf("'miner.conf' config file not available... using command line\n");
 		if (argc < 4)
 		{
@@ -1152,8 +1153,8 @@ int main(int argc, char *argv[])
 	if (ADDRESS.length() == 0)
 		bSoloMining = true;
 	
-	int nSieveThreads = GetTotalCores();
-	int nPTestThreads = GetTotalCores();
+	int nSieveThreads = GetTotalCores() - 1;
+	int nPTestThreads = GetTotalCores() - 1;
 	int nTimeout = 5;
 
 	// When using GPU with OpenACC max sieve threads is one, Prime Test as many as possible
