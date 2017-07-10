@@ -20,9 +20,9 @@ namespace Core
 		nSieveThreads = 0; // 0 = use all threads
 		nPTestThreads = 0; // 0 = use all threads
 		nTimeout = 10; 
-		nBitArraySize = 37748736; // 1024*1024*36
+		nBitArraySize = 2097152; // 1024*1024*36
 		primeLimit = 71378571;
-		nPrimeLimit = 4194304;
+		nPrimeLimit = 3000000;
 		nPrimorialEndPrime = 12;
 		bExperimental = true;
 	}
@@ -101,7 +101,7 @@ namespace Core
 			{}
 			try
 			{
-				primeLimit = root.get<unsigned int>("prime_limit");
+				//primeLimit = root.get<unsigned long>("prime_limit");
 			}
 			catch(...)
 			{}

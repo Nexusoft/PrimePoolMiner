@@ -9,7 +9,7 @@
 #include "config.h"
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/queue.hpp>
-#include "mpi_RSAZ.h"
+
 
 
 namespace Core
@@ -387,7 +387,7 @@ namespace LLP
 	
 }
 
-#define MAXCANDIDATESPERSIEVE 1000
+//#define MAXCANDIDATESPERSIEVE 1000
 #define MAX_PRIME_TEST_JOBQUEUE_SIZE 1000
 #define MAX_SIEVE_JOBQUEUE_SIZE 256
 
@@ -407,7 +407,8 @@ namespace Core
 	{
 		CBigNum	*	baseHash;
 		uint512	*	hashMerkleRoot;
-		unsigned long  * candidates;
+		uint64_t * candidates;
+		uint32_t * candidateMasks;
 		mpz_ptr		zFirstSieveElement;
 		mpz_ptr		zPrimeOrigin;
 	}primeTestJob;
@@ -428,11 +429,12 @@ namespace Core
 		uint16_t 	nMaxOriginCount;
 		uint32_t 	nMinimumShare;
 		uint32_t	nHeight;
+
 	}sieveJob;
 
 
-	extern unsigned long *primes;
-	extern unsigned long *inverses;
+	extern uint32_t *primes;
+	extern uint32_t *inverses;
 	extern unsigned int nBitArray_Size;
 	extern mpz_t  zPrimorial;
 
@@ -443,7 +445,18 @@ namespace Core
 
 	extern uint64 octuplet_origins[];
 	extern uint64 tentuplet2_origins[];
+	extern uint64 a19tuplet_origins[];
 	extern uint64 a13tuplet_origins[];
+	extern uint32_t _offsets14Tuple1[];
+	extern uint32_t _offsets24Tuple1[];
+	extern uint32_t _offsets24HalfTuple1[];
+	extern uint32_t _offsets16Tuple1[];
+	extern uint32_t _offsets16Tuple3[];
+	extern uint32_t _offsets18Tuple1[];
+	extern uint32_t _offsets20Tuple1[];
+	extern uint32_t _offsetsNearMiss1[];
+	extern uint32_t _offsetsNearMiss2[];
+
 
 	void InitializePrimes();
 	unsigned int SetBits(double nDiff);
@@ -457,10 +470,10 @@ namespace Core
 	CBigNum FermatTest(CBigNum n, CBigNum a);
 	bool Miller_Rabin(CBigNum n, int checks);
 	
-	int mp_exptmod(const mpz_ptr inBase, const mpz_ptr exponent, mpz_ptr modulus, mpz_ptr result);
+	
+	void cpusieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, uint64_t * candidates);
 
-	void cpusieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
-
+	void AdvancedSieve(uint32_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, uint32_t sieveSegment_idx, uint32_t ktuple_origin_offset_idx, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, uint64_t * candidates, uint32_t * candidateMasks);
 
 	/** Class to hold the basic data a Miner will use to build a Block.
 		Used to allow one Connection for any amount of threads. **/
@@ -477,7 +490,7 @@ namespace Core
 		LLP::Timer IDLE_TIME;
 		boost::mutex MUTEX;
 		uint64_t* bit_array_sieve;
-		
+		uint32_t* new_sieve;
 	
 
 
@@ -485,11 +498,14 @@ namespace Core
 		MinerThread(ServerConnection* cConnection) : cServerConnection(cConnection), fNewBlock(true), fBlockWaiting(false), fNewBlockRestart(true), THREAD(boost::bind(&MinerThread::PrimeMiner, this)) 
 		{ 
 			bit_array_sieve = (uint64_t *)aligned_alloc(64, (nBitArray_Size) / 8);			
+			new_sieve = (uint32_t *)aligned_alloc(64, (nBitArray_Size) * sizeof(uint32_t));
+
 		}
 
 		~MinerThread()
 		{
 			free(bit_array_sieve);
+			free(new_sieve);
 		}
 
 		void PrimeMiner();
@@ -566,32 +582,6 @@ namespace Core
 
 		void PrimeTestThread();
 	};
-
-	class CPrimeTest
-	{
-
-	public:
-		mpz_t zTwo;
-		mpz_t zNm1; /* "zNm1" = "zP minus one" */
-		mpz_t zR;
-		mpz_t zN;
-		int has_avx;
-		int has_avx2;
-		int use_avx2;
-		const uint64 Primorial = zPrimorial->_mp_d[0];
-
-		CPrimeTest();
-
-#define PP 0xE221F97C30E94E1DL	/* 3 x 5 x 7 x 11 x ... x 53 */
-#define PP_INVERTED 0x21CFE6CFC938B36BL
-#define PP_FIRST_OMITTED 59
-
-		bool FermatTest(bool useTrialDivision = false);
-
-		int FindTuples(unsigned long * candidates, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, std::vector<std::pair<uint64_t, uint16_t>> * nonces);
-
-	};
-
 
 }
 

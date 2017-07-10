@@ -131,4 +131,78 @@ void SetCurrentThreadPriority(int priority = INT32_MAX);
 
 void SetThreadPriority(pthread_t threadID, int priority);
 
+
+inline unsigned int popcount32(uint32_t v)
+{
+	unsigned int c;
+
+	v = v - ((v >> 1) & 0x55555555U);
+	v = (v & 0x33333333U) + ((v >> 2) & 0x33333333U);
+	v = (v + (v >> 4)) & 0x0f0f0f0fU;
+	c = (v * 0x01010101U) >> 24;
+	/*
+	* v = (v >> 16) + v;
+	* v = (v >> 8) + v;
+	* c = v & 255;
+	*/
+
+	return c;
+}
+
+inline unsigned long sqrtld(unsigned long N) 
+{
+	int                 b = 1;
+	unsigned long       res, s;
+	while (1 << b<N) b += 1;
+	res = 1 << (b / 2 + 1);
+	for (;;) {
+		s = (N / res + res) / 2;
+		if (s >= res) return res;
+		res = s;
+	}
+}
+
+static unsigned int int_invert(unsigned int a, unsigned int nPrime)
+{
+	// Extended Euclidean algorithm to calculate the inverse of a in finite field defined by nPrime
+	int rem0 = nPrime, rem1 = a % nPrime, rem2;
+	int aux0 = 0, aux1 = 1, aux2;
+	int quotient, inverse;
+
+	while (1)
+	{
+		if (rem1 <= 1)
+		{
+			inverse = aux1;
+			break;
+		}
+
+		rem2 = rem0 % rem1;
+		quotient = rem0 / rem1;
+		aux2 = -quotient * aux1 + aux0;
+
+		if (rem2 <= 1)
+		{
+			inverse = aux2;
+			break;
+		}
+
+		rem0 = rem1 % rem2;
+		quotient = rem1 / rem2;
+		aux0 = -quotient * aux2 + aux1;
+
+		if (rem0 <= 1)
+		{
+			inverse = aux0;
+			break;
+		}
+
+		rem1 = rem2 % rem0;
+		quotient = rem2 / rem0;
+		aux1 = -quotient * aux0 + aux2;
+	}
+
+	return (inverse + nPrime) % nPrime;
+}
+
 #endif

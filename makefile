@@ -12,7 +12,7 @@ ifeq ($(findstring CYGWIN_NT, $(UNAME)), CYGWIN_NT)
 OBJ	= obj
 EXE	= .exe
 DLL = .dll
-LDFLAGS += -Wl,--stack,100000000
+LDFLAGS += -Wl,--stack,600000000
 endif
 
 
@@ -87,7 +87,9 @@ OBJS= \
 	$(OUT_DIR)/util.o \
 	$(OUT_DIR)/prime.o \
 	$(OUT_DIR)/miner.o \
-	$(OUT_DIR)/config.o 
+	$(OUT_DIR)/config.o \
+	$(OUT_DIR)/PrimeTest.o \
+	$(OUT_DIR)/Sieve.o
 
 
 ifeq ($(OBJ),o)
