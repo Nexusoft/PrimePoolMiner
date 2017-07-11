@@ -22,7 +22,7 @@ namespace Core
 		nTimeout = 10; 
 		nBitArraySize = 2097152; // 1024*1024*36
 		primeLimit = 71378571;
-		nPrimeLimit = 3000000;
+		nPrimeLimit = 1572864;
 		nPrimorialEndPrime = 12;
 		bExperimental = true;
 	}

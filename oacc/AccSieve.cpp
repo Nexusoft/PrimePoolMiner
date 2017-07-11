@@ -32,7 +32,7 @@ static uint32_t _offsets14Tuple1[14] = { 0, 2, 6, 8, 12, 18, 20, 26, 30, 32, 36,
 static uint32_t _offsets24Tuple1[24] = { 0, 4, 6, 10, 16, 18, 24, 28, 30, 34, 40, 48, 54, 58, 60, 66, 70, 76, 84, 88, 90, 94, 96, 100 };
 
 
-void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, uint64_t * candidates)
+void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 {
 
 	mpz_t zPrimorialMod, zTempVar;
@@ -225,9 +225,9 @@ void pgisieve_bool(unsigned int * sieve1, unsigned int sieveSize, mpz_t zPrimori
 
 // CPU Sieve
 #ifdef __PGI
-void pgisieve_cpu(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, uint64_t * candidates)
+void pgisieve_cpu(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #else
-void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, uint64_t * candidates)
+void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #endif
 {
 	mpz_t zPrimorialMod, zTempVar;
@@ -318,9 +318,9 @@ void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t
 }
 
 #ifdef __PGI
-void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, uint64_t * candidates)
+void pgisieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #else
-void pgisieve_GPU(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, uint64_t * candidates)
+void pgisieve_GPU(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 #endif
 {
 
@@ -450,7 +450,7 @@ void pgisieve_GPU(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, m
 }
 
 
-int find_tuples(uint64_t * candidates, mpz_t zPrimorial, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, unsigned int nMinimumPrimeCount, std::vector<unsigned long> * nonces)
+int find_tuples(unsigned long * candidates, mpz_t zPrimorial, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, unsigned int nMinimumPrimeCount, std::vector<unsigned long> * nonces)
 {	
 	mpz_t zPrimeOriginOffset, zTempVar, zTempVar2;
 	mpz_init(zPrimeOriginOffset);

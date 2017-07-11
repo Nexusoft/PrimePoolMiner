@@ -4,7 +4,6 @@
 #include <numeric>
 
 #include "oacc/AccSieve.h"
-#include "PrimeTest.h"
 
 #pragma GCC optimize ("unroll-loops")
 
@@ -160,11 +159,13 @@ namespace Core
 					ptJob.baseHash->setuint1024(BaseHash.getuint1024());
 					*ptJob.hashMerkleRoot = hashMerkleRoot;
 					int64 nStartTime = GetTimeMicros();
-					uint64 tupleOrigin = _offsets14Tuple1[j];
+					uint64 tupleOrigin = tentuplet2_origins[j];
 					if (bUseExperimentalSieve)
 					{
+						//tupleOrigin = a19tuplet_origins[j];
+
 						//cpusieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tupleOrigin, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, ptJob.candidates);
-						AdvancedSieve(new_sieve, nBitArray_Size , zPrimorial, zPrimeOrigin, 0, j, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, ptJob.candidates, ptJob.candidateMasks);
+						AdvancedSieve(new_sieve, nBitArray_Size , zPrimorial, zPrimeOrigin, j, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, ptJob.candidates, ptJob.candidateMasks);
 					}
 					else
 						pgisieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tupleOrigin, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, ptJob.candidates);
@@ -216,8 +217,8 @@ namespace Core
 			primeTestJob job;
 			job.baseHash = new CBigNum(0);
 			job.hashMerkleRoot = new uint512(0);
-			job.candidates = (uint64_t *)malloc(sizeof(uint64_t) * MAXCANDIDATESPERSIEVE);
-			job.candidateMasks = (uint32_t *)malloc(sizeof(uint32_t) * MAXCANDIDATESPERSIEVE);
+			job.candidates = (unsigned long *)malloc(sizeof(unsigned long) * MAXCANDIDATESPERSIEVE);
+			job.candidateMasks = (uint16_t *)malloc(sizeof(uint16_t) * MAXCANDIDATESPERSIEVE);
 			job.zFirstSieveElement = (mpz_ptr)malloc(sizeof(__mpz_struct));
 			job.zPrimeOrigin = (mpz_ptr)malloc(sizeof(__mpz_struct));
 			mpz_init(job.zFirstSieveElement);
@@ -334,7 +335,7 @@ namespace Core
 		} while (allMinerThreadsAreActive == false);
 #endif
 
-		int maxChToPrint = 10;
+		int maxChToPrint = 9;
 
 		/** Initialize the Server Connection. **/
 		CLIENT = new LLP::Miner(IP, PORT);
@@ -346,10 +347,8 @@ namespace Core
 
 
 		const uint16_t maxJobs = nSieveThreads * 3;
-		//const uint16_t originSegmentSize = floor(189.0 / (float)nSieveThreads);
-		float maxSegments = 98.0;
-
-		const uint16_t originSegmentSize = floor(maxSegments / (float)nSieveThreads);
+		//const uint16_t originSegmentSize = floor(41.0 / (float)nSieveThreads);
+		const uint16_t originSegmentSize = floor(8.0 / (float)nSieveThreads);
 
 		bool bBlockRequestSent = false;
 		loop
@@ -648,8 +647,8 @@ namespace Core
 		//unsigned int nBestHeight = 0;
 
 		const uint16_t maxJobs = nSieveThreads * 3;
-		const uint16_t originSegmentSize = floor(98.0 / (float)nSieveThreads);
-		//const uint16_t originSegmentSize = floor(16.0 / (float)nSieveThreads);
+		//const uint16_t originSegmentSize = floor(153.0 / (float)nSieveThreads);
+		const uint16_t originSegmentSize = floor(16.0 / (float)nSieveThreads);
 		loop
 		{
 			try
@@ -816,6 +815,8 @@ namespace Core
 					{
 						printf("<DEBUG> Got an invalid BLOCK\n");
 						CLIENT->Disconnect();
+						Sleep(500);												
+						CLIENT = new LLP::Miner(IP, PORT);
 						Sleep(500);
 						ResetThreads();
 					}
@@ -1002,8 +1003,7 @@ namespace Core
 	void ServerConnection::PrimeTestThread()
 	{
 		//printf("Starting Prime test thread!\n");
-		CPrimeTest primeTest(zPrimorial->_mp_d[0]);
-		primeTest.nSieveTarget = 14;
+		CPrimeTest primeTest;
 		loop
 		{
 			if (exitSignal)
@@ -1022,7 +1022,7 @@ namespace Core
 
 				std::vector<std::pair<uint64_t,uint16_t>>  nonces;
 				int64 nStartTime = GetTimeMicros();
-				nPrimes += primeTest.FindTuples(job.candidates, job.candidateMasks, job.zPrimeOrigin, job.zFirstSieveElement, _offsets24Tuple1, &nonces);
+				nPrimes += primeTest.FindTuples(job.candidates, job.candidateMasks, job.zPrimeOrigin, job.zFirstSieveElement, &nonces);
 				//nPrimes += find_tuples2(job.candidates, zPrimorial, job.zPrimeOrigin, job.zFirstSieveElement, 3, &nonces);
 				pTestTime += (GetTimeMicros() - nStartTime);
 				testCount++;
@@ -1089,6 +1089,18 @@ void  INThandler(int sig)
 
 int main(int argc, char *argv[])
 {
+	//char * testHash = "dddc9981c4e917fc3d20c14c6acf3788e29221e5d7d608cf332d0cbbba0e640cebbafe55ba7a8887dfa863597724f3f6894797e16d1f74c26ed451fec1a83316f78c6797e6bc7cf2be4b814f57c77b85691e966dff441d875e82d003ae02e5c4bf70ba0bf10b504273af8148b0235f736018017abf57a41332c969ac5c62dfea";
+	//CBigNum bHash;
+	//bHash.SetHex(testHash);
+	//uint64_t nonce = 50854425456285785;
+
+	//int diff = Core::GetPrimeDifficulty(bHash + nonce, 2);
+
+	//mpz_t zTest;
+	//mpz_init_set_str(zTest, testHash, 16);
+	//mpz_add_ui(zTest, zTest, nonce);
+	
+
 #if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
 	//TODO: Stack in VS ???
 #else

@@ -8,6 +8,7 @@
 
 #include "core.h"
 #include <map>
+
 #include "oacc/AccSieve.h"
 using namespace std;
 
@@ -52,39 +53,32 @@ namespace Core
 
 	//uint64 tentuplet2_origins[] = { 941649232615361,941649232615361,941649232615361,941649232615361,941649232615361,941649232615361,941649232615361,941649232615361,941649232615361,941649232615361 };
 
-	uint64 tentuplet2_origins[] = { 7908189600581, 10527733922591, 12640876669691, 38545620633251, 43564522846961, 60268613366231, 60596839933361, 71431649320301, 79405799458871, 109319665100531, 153467532929981, 171316998238271, 216585060731771, 254583955361621, 259685796605351, 268349524548221, 290857309443971, 295606138063121, 380284918609481, 437163765888581, 440801576660561, 487925557660811, 504725363988731, 520113801406931, 595207784226941, 625281485054111, 631378766940191, 673792122184451, 681046359388511, 689316151753961, 695207112224741, 701889794782061, 711849170091791, 715567045378301, 734567711422661, 745427831287871, 795308572603661, 868682314445831, 869314742861681, 871195311482381, 941649232615361,		33081664151,83122625471,294920291201,573459229151,663903555851,688697679401,730121110331,1044815397161,1089869189021,1108671297731,1235039237891,1291458592421,1738278660731,1761428046221,1769102630411,1804037746781,1944541048181,2135766611591,2177961410741,2206701370871,2395426439291,2472430065221,2601621164951,2690705555381,2744825921681,2745579799421,2772177619481,2902036214921,3132826508081,3447850801511,3640652828621,3692145722801,4136896626671,4360784021591,4563595602101,4582294051871,4700094892301,5289415841441,5308007072981,5351833972601,5731733114951,5912642968691,5923626073901,6218504101541,7353767766461,7535450701391,7559909355611,9062538296081,9494258167391,9898228819091,11808683662661,12424633023611,12467997477821,12471156096011,12637149919391,12661770282431,12941332539251,13083931936961,13177285036031,13281538177751,13474617984671,13564397742431,14214158076731,14528577634841,14935307623121,15257534367611,15771001151441,15948208421681,16647704227151,17267454870551,17365931298251,17813681998571,17938517636771,18091735543151,18947646459011,19538901887621,19577485120001,20054859604511,20097538393391,20516952834221,20790089458751,20933920839101,21807698163521,21939572224301,23280376374371,23960929422161,25419097742651,25923673657151,25965833629271,26019670276331,26101057210841,26788150277501,27305074486421,27809177299901,28027335501701,28058118894341,28609991312711,29215723742321,29321817997931,29415143182961,29734781696351,30066514250231,30306643155401,30491978649941,32031885520751,32077660213211,32078946815801,32177891258321,32195059349261,32389598962991,32685957713021,32768010337871,32834252076161,33257396547491,33276520972811,33553699164521,33922370507141,35218098176531,36238457306321,36324444201581,36340570852121,36608331995351,36671136130241,36683401486001,36822642941081,36884191543931,37824019474511,38029448791331,39527072005691,39800828518721,40787955947351,40865589988031,41793740194091,42543399451361,43063568783771,43443517990331,44303507303171,45436752056231,45483573547871,46461061347971,46678045878461,46902845784911,46950720918371,48809302182911,48973645093181,49249629233921,50164585605131,51819088949471 };
+	uint64 tentuplet2_origins[] = { 7908189600581, 10527733922591, 12640876669691, 38545620633251, 43564522846961, 60268613366231, 60596839933361, 71431649320301, 79405799458871, 109319665100531, 153467532929981, 171316998238271, 216585060731771, 254583955361621, 259685796605351, 268349524548221, 290857309443971, 295606138063121, 380284918609481, 437163765888581, 440801576660561, 487925557660811, 504725363988731, 520113801406931, 595207784226941, 625281485054111, 631378766940191, 673792122184451, 681046359388511, 689316151753961, 695207112224741, 701889794782061, 711849170091791, 715567045378301, 734567711422661, 745427831287871, 795308572603661, 868682314445831, 869314742861681, 871195311482381, 941649232615361,
+		33081664151,83122625471,294920291201,573459229151,663903555851,688697679401,730121110331,1044815397161,1089869189021,1108671297731,1235039237891,1291458592421,1738278660731,1761428046221,1769102630411,1804037746781,1944541048181,2135766611591,2177961410741,2206701370871,2395426439291,2472430065221,2601621164951,2690705555381,2744825921681,2745579799421,2772177619481,2902036214921,3132826508081,3447850801511,3640652828621,3692145722801,4136896626671,4360784021591,4563595602101,4582294051871,4700094892301,5289415841441,5308007072981,5351833972601,5731733114951,5912642968691,5923626073901,6218504101541,7353767766461,7535450701391,7559909355611,9062538296081,9494258167391,9898228819091,11808683662661,12424633023611,12467997477821,12471156096011,12637149919391,12661770282431,12941332539251,13083931936961,13177285036031,13281538177751,13474617984671,13564397742431,14214158076731,14528577634841,14935307623121,15257534367611,15771001151441,15948208421681,16647704227151,17267454870551,17365931298251,17813681998571,17938517636771,18091735543151,18947646459011,19538901887621,19577485120001,20054859604511,20097538393391,20516952834221,20790089458751,20933920839101,21807698163521,21939572224301,23280376374371,23960929422161,25419097742651,25923673657151,25965833629271,26019670276331,26101057210841,26788150277501,27305074486421,27809177299901,28027335501701,28058118894341,28609991312711,29215723742321,29321817997931,29415143182961,29734781696351,30066514250231,30306643155401,30491978649941,32031885520751,32077660213211,32078946815801,32177891258321,32195059349261,32389598962991,32685957713021,32768010337871,32834252076161,33257396547491,33276520972811,33553699164521,33922370507141,35218098176531,36238457306321,36324444201581,36340570852121,36608331995351,36671136130241,36683401486001,36822642941081,36884191543931,37824019474511,38029448791331,39527072005691,39800828518721,40787955947351,40865589988031,41793740194091,42543399451361,43063568783771,43443517990331,44303507303171,45436752056231,45483573547871,46461061347971,46678045878461,46902845784911,46950720918371,48809302182911,48973645093181,49249629233921,50164585605131,51819088949471 };
 
 	uint64 a13tuplet_origins[] = { 7933248530182091ULL, 20475715985020181ULL, 21817283854511261ULL, 33502273017038711ULL, 40257009922154141ULL, 49242777550551701ULL, 49600456951571411ULL, 75093141517810301ULL, 84653373093824651ULL, 119308586807395871ULL, 129037438367672951ULL, 129706953139869221ULL, 151242381725881331ULL, 158947009165390331ULL, 161216594737343261ULL, 167317340088093311ULL, 176587730173540571ULL, 178444395317213141ULL, 197053322268438521ULL, 301854920123441801ULL, 410741703838050701ULL, 418640642375881811ULL, 423977804750405021ULL, 438814778374548461ULL, 513938108909431091ULL, 559182483598954331ULL, 564691499059653851ULL, 572448344464521641ULL, 589634360855545121ULL, 667572186219984161ULL, 691919312280151841ULL, 732472975494505361ULL, 767917069527663941ULL, 773765497922271971ULL, 787995321974806061ULL, 812625895169874671ULL, 823206647854907201ULL, 826020289994295281ULL, 841262446570150721ULL, 912908744164643111ULL, 953243559107805851ULL, 961342194334297661ULL, 967934530204757231ULL, 1006587882969594041ULL, 1011183292256483231ULL, 1146667694047021031ULL, 1167796280524278521ULL, 1183038120860290811ULL, 1209681051625792631ULL, 1261124760662461811ULL, 1429182723758225321ULL, 1438706125151270861ULL, 1530397981778941391ULL, 1599294858270965741ULL, 1627942734221619701ULL, 1652123725369352351ULL, 1714532248479805871ULL, 1854281958725682371ULL, 1927684478822007791ULL, 1951731807361120901ULL, 1973917160698558961ULL, 2009848558728626501ULL, 2173308288597141581ULL, 2272422935292885491ULL, 2278244071680632171ULL, 2341619987226845441ULL, 2343120040039944281ULL, 2365201889521345991ULL, 2456691069147179981ULL, 2483747301738328511ULL, 2638346840383620251ULL, 2682317478727872101ULL, 2682372491413700201ULL, 2697866408683491161ULL, 2706031853515125251ULL, 2714563183649972771ULL, 2988571533422069711ULL, 3009217231619434721ULL, 3040569903950274581ULL, 3165151604874374231ULL, 3167591756547604271ULL, 3237303168778044251ULL, 3255458630925065681ULL, 3405352702935168101ULL, 3507774163278650381ULL, 3535344092704149611ULL, 3551166931457610581ULL, 3566350920603506921ULL, 3625307100163064201ULL, 3729730321107937031ULL, 3822655227927291641ULL, 3861308153681033171ULL, 4031936803816506701ULL, 4191752640441161681ULL, 4192548731244568811ULL, 4318332681848930861ULL, 4419966415439540081ULL, 4608564491163618101ULL, 4855624173160656011ULL, 4946108577253299341ULL, 5004013600662332141ULL, 5009128141636113611ULL, 5237012345364234551ULL, 5342311333178075141ULL, 5375295377935688321ULL, 5390125348017985691ULL, 5481332507478002291ULL, 5554263153841958441ULL, 5554868310193468151ULL, 5647936541529717551ULL, 5686939357428214001ULL, 5718462475332142421ULL, 5815180284779341361ULL, 5976164202306974561ULL, 6015907930528441061ULL, 6114009625327278791ULL, 6158433201181517141ULL, 6333797731632426941ULL, 6395651777987817461ULL, 6420975769793670971ULL, 6688508709613586741ULL, 6732104937121609931ULL, 7126352574372296381ULL, 7128184741845403121ULL, 7141651301548859981ULL, 7200673740422857811ULL, 7448579068883428361ULL, 7490066291532539831ULL, 7717551078717245651ULL, 7796191547933484581ULL, 7993822923596334941ULL, 8047391955869201051ULL, 8096841447776806841ULL, 8142680509981272371ULL, 8172936673958921981ULL, 8260202105585015471ULL, 8417588704283935061ULL, 8444208357610201061ULL, 8681936548475985911ULL, 8705497065358018811ULL, 8718425083363780901ULL, 8868082252489515941ULL, 8936672511075525101ULL, 8942435641714130441ULL, 9088347008465620781ULL, 9248966791533905321ULL, 9285579680626415051ULL, 9289410144748839221ULL, 9295920773602948601ULL, 9556359435868791431ULL, 9589101086077418021ULL, 9752659358061105371ULL, 9831024675664517441ULL, 9883619791069640501ULL, 9909538323760400441ULL, 10138452552101909921ULL, 10170371594471514311ULL, 10327262692092542081ULL, 10507556146919867921ULL, 10570197338486911241ULL, 10688546378467152311ULL, 10883528992824613241ULL, 10923754124049321671ULL, 10937790142602859421ULL, 11010369846356665901ULL, 11074659430273774451ULL, 11088326350945458731ULL, 11102093089272631331ULL, 11312458227678553061ULL, 11451633007692123131ULL, 11473517342470328261ULL, 11566832340556308701ULL, 11704787622527225111ULL, 11864234860023131471ULL, 12040468439440346021ULL, 12060132444969714221ULL, 12109610766126809051ULL, 12133432915975656401ULL, 12281976862150420541ULL, 12283184697373485011ULL, 12484308332943792461ULL, 12658575037462640171ULL, 12687940090632041351ULL, 12743805720981340121ULL, 12790060519079219261ULL, 12826365804581023811ULL, 12856398922752490991ULL, 12861151241738035121ULL, 12862507970199143141ULL, 12870536149631655611ULL, 12906371481473675321ULL, 12950968854480722951ULL, 12980511790060529831ULL, 13326939721942032071ULL, 13647309375492208301ULL, 13825299795938817071ULL, 14076523913088511991ULL, 14249372854719388271ULL };
 
 	uint64 a14tuplet_origins[] = { 21817283854511261ULL, 841262446570150721ULL, 1006587882969594041ULL, 2682372491413700201ULL, 5009128141636113611ULL, 7126352574372296381ULL, 7993822923596334941ULL, 12870536149631655611ULL, 15762479629138737611ULL };
 		
-
-	uint64 kTuplet_offsets[] = { 133785488773, 45267138853, 41474560063, 12061526413, 71132638513, 77588037463, 67655554903, 127771680973, 145444516153, 114861393583, 113939923033, 154040994043, 150141718663, 133293357133, 39195823603, 171944910073, 33874417513, 30174241033, 166513263853, 57232982743, 31057093003, 27595835203, 21285931603, 43384377973, 109314191923, 18796684843, 192809123443, 23404037593, 106354765453, 178566404953, 93534327823, 174661003453, 126891561733, 34812404563, 56818448623, 168474132763, 107344133833, 138375994693, 89284332073, 29487274753, 137532121663, 90541718203, 196583834383, 176141482453, 7467446923, 35779821013, 161112068053, 155494416013, 165745967323, 78446204773, 92290214953, 183885408643, 196601702233, 160004771863, 69592940353, 4498320763, 67388558173, 98335674373, 156424565233, 30151448263, 107956235323, 170441638303, 4876608673, 178629708193, 177415715413, 198386445193, 193130744743, 168694673083, 122446551163, 122046311323, 115783885153, 93232105903, 64284657373, 185850872143, 180480817453, 197519599213, 176182833763, 85374335983, 180023911003, 184689461893, 93961114183, 95707058383, 1268323993, 66809129323, 13596629983, 38207296063, 106695275623, 113979742813, 135076568563, 90144030913, 63773126353, 187587116653, 113416139773, 101884229383, 10424831353, 90837814003, 179898836053, 88454843413 };
-
-							       // 0  1   2   3   4   5   6   7   8   9  10  11  12  13
-	uint32_t _offsets14Tuple1[15] = { 0, 2,  6,  8, 12, 18, 20, 26, 30, 32, 36, 42, 48, 50, 56 };
+										  // 0  1   2   3   4   5   6   7   8   9  10  11  12  13
+	static uint32_t _offsets14Tuple1[14] = { 0, 2,  6,  8, 12, 18, 20, 26, 30, 32, 36, 42, 48, 50 };
 	static uint32_t _offsets15Tuple1[15] = { 0, 2,  6,  8, 12, 18, 20, 26, 30, 32, 36, 42, 48, 50, 56};
 	static uint32_t _offsets15Tuple2[15] = { 0, 2,  6, 12, 14, 20, 24, 26, 30, 36, 42, 44, 50, 54, 56 };
 
 										 // 0  1   2   3   4   5   6   7   8   9  10  11  12  13  14
 										 // 0, 2,  6, 12, 14, 20, 26, 30, 32, 36, 42, 44, 50, 54, 56
 	static uint32_t _offsets15Tuple3[15] = { 0, 2,  6, 12, 14, 20, 26, 30, 32, 36, 42, 44, 50, 54, 56 };
-										     
-								   // 0  1  2   3   4   5   6   7   8   9  10  11  12  13
-	uint32_t _offsets16Tuple1[16] = { 0, 4, 6, 10, 16, 18, 24, 28, 30, 34, 40, 46, 48, 54, 58, 60 };
-	uint32_t _offsets16Tuple3[16] = { 0, 2, 6, 12, 14, 20, 26, 30, 32, 36, 42, 44, 50, 54, 56, 60 };	
-
+	static uint32_t _offsets16Tuple3[16] = { 0, 2,  6, 12, 14, 20, 26, 30, 32, 36, 42, 44, 50, 54, 56, 60 };	
 	static uint32_t _offsets19Tuple1[19] = { 0, 6, 10, 16, 18, 22, 28, 30, 36, 42, 46, 48, 52, 58, 60, 66, 70, 72, 76 }; //293281 + 510510 * n
 	static uint32_t _offsets19Tuple2[19] = { 0, 4,  6, 10, 16, 18, 24, 28, 30, 34, 40, 46, 48, 54, 58, 60, 66, 70, 76 };  // 217153 + 510510 * n
 
-	uint32_t _offsets18Tuple1[18] = { 0, 4, 10, 12, 16, 22, 24, 30, 36, 40, 42, 46, 52, 54, 60, 64, 66, 70 };
-
-	uint32_t _offsets20Tuple1[20] = { 0, 2, 6, 8, 12, 20, 26, 30, 36, 38, 42, 48, 50, 56, 62, 66, 68, 72, 78, 80 };
-
-	uint32_t _offsets24Tuple1[24] = { 0, 4, 6, 10, 16, 18, 24, 28, 30, 34, 40, 46, 48, 54, 58, 60, 66, 70, 76, 84, 88, 94, 96, 100 };
-	
-	uint32_t _offsetsNearMiss1[15] = { 0, 4, 10, 12, 18, 24, 28, 30, 34, 40, 42, 48, 52, 54, 58 };
-	uint32_t _offsetsNearMiss2[18] = { 0, 4, 6, 10, 16, 18, 24, 28, 30, 34, 40, 46, 48, 54, 58, 60, 66, 70 };	//!!!! 5ch rate is UP
+	static constexpr uint32_t bit4Mask = 1UL << 4;
+	static constexpr uint32_t bit5Mask = 1UL << 5;
+	static constexpr uint32_t bit6Mask = 1UL << 6;
+	static constexpr uint32_t bit7Mask = 1UL << 7;
+	static constexpr uint32_t bit8Mask = 1UL << 8;
+	static constexpr uint32_t bit9Mask = 1UL << 9;
+	static constexpr uint32_t bit10Mask = 1UL << 10;
 
 #define PRIMELIMIT 16384 * 48
 #define PRIMELIMIT1 16384 * 14
@@ -95,6 +89,191 @@ namespace Core
 #define STARTOFFSET 0
 #define MAX_PRIMES	8000
 #define STOPRANK 3
+
+
+	CPrimeTest::CPrimeTest()
+	{
+		const char zTmpPrimeHex[] = "b6122b34ba26087abc80aaa2f75c48d772ec4f8e377ced162efc9a56c167f42ddec5ddcac936f3a0e4ae928b8f61ce451221bd6e71291c0717a667a1418a6bfdb5b1aba05b4d3d5a170e50e05a0d11c4d40075d5cc84625c0bd378f361ed8c438c47b2731dd93f7dfa26ca0f582fca850dafe98bd5c64e8c127462b202ac1bb7";
+			
+		mpz_init_set_str(zN, zTmpPrimeHex, 16);
+		mpz_init_set(zTwo, zN);
+		mpz_set_ui(zTwo, 2);			
+		mpz_init(zNm1);
+		mpz_sub_ui(zNm1, zN, 1L);
+		mpz_init(zR);
+		//mpz_pow_ui(zR, zN, 2); /* mpz_powm_ui needs excessive memory so preallocate 2x more!!! */
+		mpz_realloc(zR, zN->_mp_size * 2);
+		
+#if defined(_MSC_VER) || defined(__CYGWIN__)
+		use_avx2 = 0;
+#else
+
+		unsigned long eax, ebx, ecx, edx;
+		freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
+		has_avx = (ecx & (1 << 28)) != 0 ? 1 : -1;
+		freebl_cpuid(7, &eax, &ebx, &ecx, &edx);
+		has_avx2 = (ebx & (1 << 5)) != 0 ? 1 : -1;
+		use_avx2 = (has_avx > 0) && (has_avx2 > 0);
+#endif
+	}
+
+	bool CPrimeTest::FermatTest(bool useTrialDivision)
+	{
+		if (useTrialDivision)
+		{
+			mp_limb_t r = mpn_preinv_mod_1(zN->_mp_d, (mp_size_t)zN->_mp_size, (mp_limb_t)PP, (mp_limb_t)PP_INVERTED);
+			if (r % 3 == 0 || r % 5 == 0 || r % 7 == 0 || r % 11 == 0 || r % 13 == 0 || r % 17 == 0 || r % 19 == 0 || r % 23 == 0 || r % 29 == 0 || r % 31 == 0 || r % 37 == 0 || r % 41 == 0 || r % 43 == 0 || r % 47 == 0 || r % 53 == 0)
+				return false;
+		}
+
+		zNm1->_mp_d[0] = zN->_mp_d[0] - 1;
+		zNm1->_mp_d[1] = zN->_mp_d[1];
+		if (use_avx2)
+			mp_exptmod(zTwo, zNm1, zN, zR);
+		else
+			mpz_powm(zR, zTwo, zNm1, zN);	
+
+		if (mpz_cmp_ui(zR, 1L) != 0)
+			return false;
+		return true;
+	}
+
+	int CPrimeTest::FindTuples(unsigned long * candidates, uint16_t * candidateMasks, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, std::vector<std::pair<uint64_t, uint16_t>> * nonces)
+	{
+		int n1stPrimeSearchLimit = 18;
+		int cx = 0;
+		int nPrimes = 0;
+
+		mpz_sub(zN, zFirstSieveElement, zPrimeOrigin);
+		uint64_t nonce = zN->_mp_d[0];
+			
+		mpz_set(zN, zFirstSieveElement);
+		mpz_set(zNm1, zFirstSieveElement);
+		const mp_limb_t d0 = zN->_mp_d[0];
+		const mp_limb_t d1 = zN->_mp_d[1];
+		int firstPrimeAt;
+
+		uint16_t nStart, nStop, nPrimeCount, nLastOffset;
+		while (cx < MAXCANDIDATESPERSIEVE)
+		{
+			uint64_t candidate = candidates[cx];
+			if (candidate == UINT64_MAX)
+				break;
+			uint16_t candMask = candidateMasks[cx];
+			zN->_mp_d[0] = d0;
+			zN->_mp_d[1] = d1;
+			const uint64_t n = Primorial * candidate;
+			cx++;
+			mpz_add_ui(zN, zN, n);
+
+			const uint64_t tmp = zN->_mp_d[0];			
+			mpz_add_ui(zN, zN, _offsets14Tuple1[5]);
+			if (((candMask & bit5Mask) != bit5Mask) && FermatTest())
+			{
+				n1stPrimeSearchLimit = _offsets14Tuple1[5];
+			}
+			else
+			{
+				mpz_add_ui(zN, zN, 2); 
+				if (((candMask & bit6Mask) != bit6Mask) && FermatTest())
+				{
+					candidateHit2Count++;
+					n1stPrimeSearchLimit = _offsets14Tuple1[6];
+				}
+				else
+					//{ 					
+					//	mpz_add_ui(zN, zN, 6);
+					//	if (((candMask & bit7Mask) != bit7Mask) && FermatTest())
+					//		n1stPrimeSearchLimit = _offsets14Tuple1[7];
+					//	else
+					//		continue;
+					//}
+					continue;				
+			}
+			nPrimes++;
+			candidateHitCount++;
+			
+			
+			zN->_mp_d[0] = tmp;
+			//zN->_mp_d[1] = d1;
+			nStop = 0; nPrimeCount = 0; nLastOffset = 0; firstPrimeAt = -1;
+			double diff = 0;
+			bool bTrialDiv = false;
+			bool inTupple = false;
+			for (nStart = 0; nStart <= nStop + 12; nStart += 2)
+			{
+				bool bIngnore = false;
+				for (int i = 0; i < SIEVETARGET; i++)
+				{
+					if (_offsets14Tuple1[i] == nLastOffset)
+					{
+						bTrialDiv = true;
+						uint16_t mask = 1U << i;
+						if ((candMask & mask) == mask)
+							bIngnore = true;
+						break;
+					}
+					else if (_offsets14Tuple1[i] > nLastOffset)
+						break;
+				}
+				if (bIngnore)
+				{
+					mpz_add_ui(zN, zN, 2);
+					nLastOffset += 2;
+					continue;
+				}
+
+				//if (nStart == 4 || nStart == 10 || nStart == 14 || nStart == 16 || nStart == 22 || nStart == 24 || nStart == 28 || nStart == 34)
+				//	bTrialDiv = true;
+				//else
+				//	bTrialDiv = false;
+
+				//{
+				//	mpz_add_ui(zN, zN, 2);
+				//	nLastOffset += 2;
+				//	continue;
+				//}
+
+				if (FermatTest(bTrialDiv))
+				//if (mpz_probab_prime_p(zN, 0) > 0) // use this until implement trial division in FermatTest
+				{
+					nStop = nStart;
+					nPrimeCount++;
+				}
+				if (nPrimeCount == 0 && nStart >= n1stPrimeSearchLimit)
+					break;
+
+				if ((firstPrimeAt == -1 && nPrimeCount == 1))
+				{
+					//mpz_set(zPrimeOriginOffset, zTempVar); // zPrimeOriginOffset = zTempVar
+					firstPrimeAt = nStart;
+				}
+
+				mpz_add_ui(zN, zN, 2);
+				nLastOffset += 2;
+				if (nStart >= (nStop + 12) && nLastOffset < n1stPrimeSearchLimit)
+				{
+					//printf("Stopped at %u before touching search limit %u\n", nLastOffset, n1stPrimeSearchLimit);
+					firstPrimeAt = n1stPrimeSearchLimit;
+					nLastOffset = n1stPrimeSearchLimit;
+					nStop = n1stPrimeSearchLimit;
+					nStart = n1stPrimeSearchLimit;
+					zN->_mp_d[0] = tmp;
+					mpz_add_ui(zN, zN, n1stPrimeSearchLimit);
+				}
+
+			}
+			if (nPrimeCount >= 3)
+			{
+				uint64_t nNonce = nonce + n + firstPrimeAt;
+				nonces->push_back(std::pair<uint64_t, uint16_t>(nNonce, nPrimeCount));
+			}
+		}
+	candidateCount += cx;
+	//if (nonces->size() > 0)
+	//	printf("Found %u %u+ tuples out of %u candidates\n", nonces->size(), nMinimumPrimeCount, cx);
+	return nPrimes;
+	}
 
 	 
 	uint32_t * make_primes(unsigned int limit)
@@ -233,7 +412,7 @@ namespace Core
 	//};
 
 //#pragma GCC optimize ("unroll-loops")
-	void cpusieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, uint64_t * candidates)
+	void cpusieve(uint64_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates)
 	{
 		mpz_t zPrimorialMod, zTempVar;
 		mpz_init(zPrimorialMod);
@@ -396,7 +575,7 @@ namespace Core
 		for (int pt = 0; pt < SieveTarget; pt++)
 		{
 			uint16_t tMask = (1U << pt);
-			uint16_t o = _offsets16Tuple1[pt];
+			uint16_t o = _offsets14Tuple1[pt];
 			if ((mask & tMask) != tMask)
 			{
 				lastPos = (int)o;
@@ -408,86 +587,103 @@ namespace Core
 		return diff;
 	}
 
-	void AdvancedSieve(uint32_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, uint32_t sieveSegment_idx, uint32_t ktuple_origin_offset_idx, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, uint64_t * candidates, uint32_t * candidateMasks)
+	void AdvancedSieve(uint16_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates, uint16_t * candidateMasks)
 	{
 		mpz_t zPrimorialMod, zTempVar;
 		mpz_init(zPrimorialMod);
-		mpz_init(zTempVar);
+		mpz_init(zTempVar);		
 		mpz_mod(zPrimorialMod, zPrimeOrigin, zPrimorial);
 		mpz_sub(zPrimorialMod, zPrimorial, zPrimorialMod);
 		mpz_mod(zPrimorialMod, zPrimorialMod, zPrimorial);
-
-		uint64_t offset = kTuplet_offsets[ktuple_origin_offset_idx];
-
-		uint64_t nPrimorial = zPrimorial->_mp_d[0];
-		uint64_t sieveSegmentSize = sieveSize;
-
-
-		int64_t sieveSegmentOffset = nPrimorial * sieveSegmentSize * sieveSegment_idx + offset; // instead of using multiple offsets just wave the sieve at a higer segment
+		//uint64_t offset = 7908189600581ULL;
+		//uint64_t offset = 21817283854511261ULL;  // 14-t		
+		//uint64_t offset = 841262446570150721ULL; // 14-t
+		uint64_t offset = 1006587882969594041ULL; // 14-t
+		//uint64_t offset = 1158722981124148367ULL; // k=15  s=56  B={0  2  6  12  14  20  26  30  32  36  42  44  50  54  56} 
+//		uint64_t offset = 15131;	// 14-tuple : 15131 + 30030 * n
+//		uint64_t offset = 293281;	// 19-tuple : 293281 + 510510 * n
+//		uint64_t offset = 217153;	// 19-tuple : 217153 + 510510 * n
+//		uint64_t maxu64 = 18446744073709551615ULL;
 
 #if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
 		mpz_t zKTuplet;	mpz_init(zKTuplet);
-		mpz_import(zKTuplet, 1, 1, sizeof(sieveSegmentOffset), 0, 0, &sieveSegmentOffset);
+		mpz_import(zKTuplet, 1, 1, sizeof(offset), 0, 0, &offset);
 		mpz_add(zPrimorialMod, zPrimorialMod, zKTuplet);
-		//uint64_t nPrimorial;
-		//size_t size = 1;
-		//mpz_export(&nPrimorial, &size, 1, sizeof(nPrimorial), 0, 0, zPrimorial);
 #else
 		mpz_add_ui(zPrimorialMod, zPrimorialMod, offset);
-		mpz_add(zTempVar, zPrimeOrigin, zPrimorialMod);
 #endif
-		mpz_add(zTempVar, zPrimeOrigin, zPrimorialMod);
-		mpz_set(*zFirstSieveElement, zTempVar);
+		uint32_t maxSieveSegments = 1;
+		uint32_t sieveSegmentSize = sieveSize / maxSieveSegments;
 
+
+		mpz_add(zTempVar, zPrimeOrigin, zPrimorialMod);
+		int64_t sieveSegmentOffset = zPrimorial->_mp_d[0] * sieveSegmentSize * ktuple_origin;
+		mpz_add_ui(zTempVar, zTempVar, sieveSegmentOffset);
+
+		mpz_set(*zFirstSieveElement, zTempVar);
+		
 		int cx = 0;
 
-		memset(sieve1, 0x0, sieveSegmentSize * sizeof(uint32_t));
-
-		for (unsigned int i = nPrimorialEndPrime; i < nPrimeLimit; i++)
+		//for (uint32_t ssIdx = 0; ssIdx < maxSieveSegments; ssIdx++)
 		{
+			memset(sieve1, 0x0, sieveSegmentSize * sizeof(uint16_t));
 
-			uint32_t  p = primes[i];
-			uint32_t inv = inverses[i];
-			uint32_t base_remainder = mpz_tdiv_ui(zTempVar, p);
-			uint32_t lc = (sieveSegmentSize / p) + 1;
-			for (int l = 0; l < lc; l++)
+			for (unsigned int i = nPrimorialEndPrime; i < nPrimeLimit; i++)
 			{
-				uint32_t lp = l*p;
-				for (uint16_t pt = SIEVETARGETSTART; pt < SIEVETARGET; pt++)
+				
+				uint32_t  p = primes[i];
+				uint32_t inv = inverses[i];				
+				uint32_t base_remainder = mpz_tdiv_ui(zTempVar, p);				
+				uint32_t lc = (sieveSegmentSize / p) + 1;
+				for (int l = 0; l < lc; l++)
 				{
-					//if ((pt != 5 && pt != 6 && pt != 7) && i > 1500000)
+					uint32_t lp = l*p;
+					for (uint16_t pt = SIEVETARGETSTART; pt < SIEVETARGET; pt++)
+					{
+						if ((pt != 5 && pt != 6 && pt != 7) && i > 1500000)
+							continue;
+						uint32_t remainder = base_remainder + _offsets14Tuple1[pt];
+						if (p < remainder)
+							remainder -= p;
+						uint64_t r = (uint64_t)(p - remainder)*(uint64_t)inv;
+						uint32_t idx = (r % p) + lp;
+
+						if (idx < sieveSegmentSize)
+							sieve1[idx] |= (1U << pt);
+					}
+				}
+			}
+
+			for (uint64_t i = 0U; i < sieveSegmentSize; i++)
+			{
+				const uint16_t mask = sieve1[i];
+				//if (popcount32(mask & 0xFF00U) < 4)
+				if (popcount32(mask) < 6)
+				{
+					sieveCandidateCount++;
+					//if ((mask & 0x20) == 0x20 // bit 5
+					//	|| (mask & 0x40) == 0x40 // bit 6 
+					//)
 					//	continue;
-					uint32_t remainder = base_remainder + _offsets24Tuple1[pt];
-					if (p < remainder)
-						remainder -= p;
-					uint64_t r = (uint64_t)(p - remainder)*(uint64_t)inv;
-					uint32_t idx = (r % p) + lp;
 
-					if (idx < sieveSegmentSize)
-						sieve1[idx] |= (1U << pt);
+					//if ((mask & 0x80) == 0x80 // bit 7
+					//	|| (mask & 0xF0) == 0xF0 // bit 8 
+					//)
+					//	continue;
+
+					//unsigned int diff =  GetBitDiff(mask, SIEVETARGET);
+					//if (diff > 8)
+					//if(popcount32(mask & 0x1FFCU) < 4)
+					{
+						candidates[cx] = i;
+						candidateMasks[cx] = mask;
+						cx++;
+						if (cx >= MAXCANDIDATESPERSIEVE)
+							break;
+					}
 				}
 			}
-		}
-
-		for (uint64_t i = 0U; i < sieveSegmentSize; i++)
-		{
-			const uint32_t mask = sieve1[i];
-			if (popcount32(mask) < 6)
-			{
-				sieveCandidateCount++;
-				//unsigned int diff =  GetBitDiff(mask, SIEVETARGET);
-				//if (diff > 8)
-				//if (popcount32(mask & 0xFFFFFFF0U) <= 3)
-				//if (popcount32(mask & 0x0000F0U) <= 2 && popcount32(mask & 0x00FF00U) <= 3 && popcount32(mask & 0x00000FU) <= 2)
-				{
-					candidates[cx] = i;
-					candidateMasks[cx] = mask;
-					cx++;
-					if (cx >= MAXCANDIDATESPERSIEVE)
-						break;
-				}
-			}
-		}
+		} // for ssIdx
 		candidates[cx] = UINT64_MAX;
 	}
 
@@ -588,6 +784,54 @@ namespace Core
 	}
 
 
+	/* Compute T = (P ** -1) mod MP_RADIX.  Also works for 16-bit mp_digits.
+	** This technique from the paper "Fast Modular Reciprocals" (unpublished)
+	** by Richard Schroeppel (a.k.a. Captain Nemo).
+	*/
+	mp_digit s_mp_invmod_radix(mp_digit P)
+	{
+		mp_digit T = P;
+		T *= 2 - (P * T);
+		T *= 2 - (P * T);
+		T *= 2 - (P * T);
+		T *= 2 - (P * T);
+#if !defined(MP_USE_UINT_DIGIT)
+		T *= 2 - (P * T);
+		T *= 2 - (P * T);
+#endif
+		return T;
+	}
 
+#define MPZ_DIGIT(MP, N) (MP)->_mp_d[(N)]
+
+	int mp_exptmod(const mpz_ptr inBase, const mpz_ptr exponent, mpz_ptr modulus, mpz_ptr result)
+	{
+#if defined(_MSC_VER) || defined(__CYGWIN__)
+		return MP_UNDEF;
+#else
+		mp_digit n0;
+		mpz_t RR;
+		mp_digit a_locl[32] = { 0 };
+
+		mpz_init(RR);
+		mpz_set_ui(RR, 1);
+		mpz_mul_2exp(RR, RR, modulus->_mp_size * 2 * 64);
+		mpz_mod(RR, RR, modulus);
+		n0 = 0 - s_mp_invmod_radix(MPZ_DIGIT(modulus, 0));
+
+		memcpy(a_locl, inBase->_mp_d, inBase->_mp_size * 8);
+
+		if (!RSAZ_redundant_mod_exponent((mp_digit*)result->_mp_d, a_locl, (mp_digit*)exponent->_mp_d, (mp_digit *) modulus->_mp_d, (mp_digit*)RR->_mp_d, n0, 1024, 1024, 0))
+		{
+			return MP_MEM;
+		}
+		result->_mp_size = modulus->_mp_size;
+		while ((result->_mp_d[result->_mp_size - 1] == 0) && result->_mp_size > 0) result->_mp_size--;
+
+		mpz_clear(RR);
+
+		return MP_OKAY;
+#endif
+	}
 }
 

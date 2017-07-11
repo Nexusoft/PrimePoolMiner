@@ -102,8 +102,6 @@
     <ClCompile Include="mpi_mod_exp_redundant_WW.c" />
     <ClCompile Include="oacc\AccSieve.cpp" />
     <ClCompile Include="prime.cpp" />
-    <ClCompile Include="PrimeTest.cpp" />
-    <ClCompile Include="Sieve.cpp" />
     <ClCompile Include="util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -124,8 +122,6 @@
     <ClInclude Include="hash\uint1024.h" />
     <ClInclude Include="mpi_RSAZ.h" />
     <ClInclude Include="oacc\AccSieve.h" />
-    <ClInclude Include="PrimeTest.h" />
-    <ClInclude Include="Sieve.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="util.h" />
   </ItemGroup>

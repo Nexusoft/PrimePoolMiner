@@ -7,7 +7,7 @@
   "timeout": 10,
   "bit_array_size": 2097152,
   "prime_limit": 71378571,
-  "n_prime_limit": 3000000,
+  "n_prime_limit": 2500000,
   "primorial_end_prime": 12,
   "experimental": "true"
 }

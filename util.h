@@ -132,7 +132,7 @@ void SetCurrentThreadPriority(int priority = INT32_MAX);
 void SetThreadPriority(pthread_t threadID, int priority);
 
 
-inline unsigned int popcount32(uint32_t v)
+unsigned int popcount32(uint32_t v)
 {
 	unsigned int c;
 
@@ -149,7 +149,7 @@ inline unsigned int popcount32(uint32_t v)
 	return c;
 }
 
-inline unsigned long sqrtld(unsigned long N) 
+unsigned long sqrtld(unsigned long N) 
 {
 	int                 b = 1;
 	unsigned long       res, s;
