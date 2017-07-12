@@ -640,8 +640,6 @@ namespace Core
 					uint32_t lp = l*p;
 					for (uint16_t pt = SIEVETARGETSTART; pt < SIEVETARGET; pt++)
 					{
-						if ((pt != 5 && pt != 6 && pt != 7) && i > 1500000)
-							continue;
 						uint32_t remainder = base_remainder + _offsets14Tuple1[pt];
 						if (p < remainder)
 							remainder -= p;
