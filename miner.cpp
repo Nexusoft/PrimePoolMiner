@@ -1217,7 +1217,7 @@ int main(int argc, char *argv[])
 	}
 
 
-	printf("Nexus Prime Pool & Solo Miner 1.2.3 - Created by Videlicet - Optimized by Supercomputing, paulscreen, hashtobewild & mumus\n");
+	printf("Nexus Prime Pool & Solo Miner 1.4 - Created by Videlicet - Optimized by Supercomputing, paulscreen, hashtobewild & mumus\n");
 	if (!bSoloMining) printf("Using Supplied Account Address %s\n", ADDRESS.c_str());
 	else printf("Solo mining mode\n");
 	printf("Initializing Miner \n");
