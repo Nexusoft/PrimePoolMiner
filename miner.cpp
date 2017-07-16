@@ -348,7 +348,7 @@ namespace Core
 
 		const uint16_t maxJobs = nSieveThreads * 3;
 		//const uint16_t originSegmentSize = floor(41.0 / (float)nSieveThreads);
-		const uint16_t originSegmentSize = floor(8.0 / (float)nSieveThreads);
+		const uint16_t originSegmentSize = floor(32.0 / (float)nSieveThreads);
 
 		bool bBlockRequestSent = false;
 		loop
@@ -648,7 +648,7 @@ namespace Core
 
 		const uint16_t maxJobs = nSieveThreads * 3;
 		//const uint16_t originSegmentSize = floor(153.0 / (float)nSieveThreads);
-		const uint16_t originSegmentSize = floor(16.0 / (float)nSieveThreads);
+		const uint16_t originSegmentSize = floor(32.0 / (float)nSieveThreads);
 		loop
 		{
 			try
@@ -1172,7 +1172,7 @@ int main(int argc, char *argv[])
 		bSoloMining = true;
 	
 	int nSieveThreads = GetTotalCores() - 1;
-	int nPTestThreads = GetTotalCores() - 1;
+	int nPTestThreads = GetTotalCores() ;
 	int nTimeout = 5;
 
 	// When using GPU with OpenACC max sieve threads is one, Prime Test as many as possible

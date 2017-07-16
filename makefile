@@ -12,7 +12,7 @@ ifeq ($(findstring CYGWIN_NT, $(UNAME)), CYGWIN_NT)
 OBJ	= obj
 EXE	= .exe
 DLL = .dll
-LDFLAGS += -Wl,--stack,100000000
+LDFLAGS += -Wl,--stack,600000000
 endif
 
 
