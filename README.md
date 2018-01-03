@@ -1,12 +1,16 @@
 # Nexus CPU Pool/Solo Miner
 
-# Build instructions (Ubuntu)
-### Install dependencies
+# Build instructions
+### Install dependencies Ubuntu:
 
 ```sh
 sudo apt-get install build-essential libboost-all-dev libdb-dev libdb++-dev libssl-dev libminiupnpc-dev libgmp-dev
 ```
-
+### Install dependencies Archlinux:
+The miner currently needs openssl-1.0 instead of openssl. Use makefile.archlinux to point at the 1.0 lib and not at the new one.
+```
+sudo pacman -S base-devel boost db openssl-1.0 miniupnpc gmp
+```
 ### Clone the repo
 
 ```sh
@@ -45,8 +49,11 @@ You can adjust the parameters used to initialise the prime sieving / wheel facto
 
 ### Run the miner without miner.conf
 The Required Arguments are 'IP PORT ADDRESS'
+
 Default Arguments are Total Threads = CPU Cores and Connection Timeout = 10 Seconds
+
 Format for Arguments is 'IP PORT ADDRESS SIEVE-THREADS PRIMETEST-THREADS TIMEOUT'
+
 Solo mining example:
 ```
 ./nexus_cpuminer localhost 9325 ""
