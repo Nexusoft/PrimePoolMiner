@@ -12,7 +12,7 @@ ifeq ($(findstring CYGWIN_NT, $(UNAME)), CYGWIN_NT)
 OBJ	= obj
 EXE	= .exe
 DLL = .dll
-LDFLAGS += -Wl,--stack,100000000
+LDFLAGS += -Wl,--stack,600000000
 endif
 
 
@@ -87,11 +87,16 @@ OBJS= \
 	$(OUT_DIR)/util.o \
 	$(OUT_DIR)/prime.o \
 	$(OUT_DIR)/miner.o \
-	$(OUT_DIR)/config.o \
-	$(OUT_DIR)/red2norm.o \
+	$(OUT_DIR)/config.o 
+
+
+ifeq ($(OBJ),o)
+OBJS+= \
+	$(OUT_DIR)/red2norm.o 	\
 	$(OUT_DIR)/redundant_AVX2_AMM1024_asm.o \
 	$(OUT_DIR)/redundant_AVX2_AMS1024_asm.o \
 	$(OUT_DIR)/mpi_mod_exp_redundant_WW.o
+endif
 
 OBJECTS = $(patsubst %.cpp,%.o,$(wildcard oacc/*.c*))
 
@@ -139,7 +144,7 @@ $(OUT_DIR)/%.o: hash/%.cpp $(HEADERS)
 
 
 nexus_cpuminer: $(OBJS:obj/%=$(OUT_DIR)/%) liboaccminer$(DLL)
-	$(CXX) -pthread -m64 -static-libgcc -Wl,--no-undefined -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -rdynamic -o $@ $^ $(LDFLAGS) -loaccminer $(LIBS) $(PGLIBS) $(ACCLIBSFLAGS) 
+	$(CXX) -pthread -m64 -static-libgcc -Wl,--no-undefined -o $@ $^ $(LDFLAGS) -loaccminer $(LIBS) $(PGLIBS) $(ACCLIBSFLAGS) 
 
 clean:
 	-rm -f nexus_cpuminer$(EXE)

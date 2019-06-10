@@ -41,7 +41,7 @@ bool bSoloMining = false;
 volatile bool exitSignal = false;
 std::string ADDRESS;
 uint64 nCurrentPayout = 0, nAccountBalance = 0;
-bool bUseExperimentalSieve;
+bool bUseExperimentalSieve = true;
 
 static LLP::Timer cPrimeTimer;
 std::deque<double> vPPSValues;
@@ -161,7 +161,12 @@ namespace Core
 					int64 nStartTime = GetTimeMicros();
 					uint64 tupleOrigin = tentuplet2_origins[j];
 					if (bUseExperimentalSieve)
-						cpusieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tupleOrigin, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, ptJob.candidates);
+					{
+						//tupleOrigin = a19tuplet_origins[j];
+
+						//cpusieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tupleOrigin, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, ptJob.candidates);
+						AdvancedSieve(new_sieve, nBitArray_Size , zPrimorial, zPrimeOrigin, j, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, ptJob.candidates, ptJob.candidateMasks);
+					}
 					else
 						pgisieve(bit_array_sieve, nBitArray_Size, zPrimorial, zPrimeOrigin, tupleOrigin, primes, inverses, nPrimorialEndPrime, nPrimeLimit, &zFirstSieveElement, ptJob.candidates);
 					
@@ -213,6 +218,7 @@ namespace Core
 			job.baseHash = new CBigNum(0);
 			job.hashMerkleRoot = new uint512(0);
 			job.candidates = (unsigned long *)malloc(sizeof(unsigned long) * MAXCANDIDATESPERSIEVE);
+			job.candidateMasks = (uint16_t *)malloc(sizeof(uint16_t) * MAXCANDIDATESPERSIEVE);
 			job.zFirstSieveElement = (mpz_ptr)malloc(sizeof(__mpz_struct));
 			job.zPrimeOrigin = (mpz_ptr)malloc(sizeof(__mpz_struct));
 			mpz_init(job.zFirstSieveElement);
@@ -341,7 +347,8 @@ namespace Core
 
 
 		const uint16_t maxJobs = nSieveThreads * 3;
-		const uint16_t originSegmentSize = floor(153.0 / (float)nSieveThreads);
+		//const uint16_t originSegmentSize = floor(41.0 / (float)nSieveThreads);
+		const uint16_t originSegmentSize = floor(32.0 / (float)nSieveThreads);
 
 		bool bBlockRequestSent = false;
 		loop
@@ -473,7 +480,6 @@ namespace Core
 
 				double nDiff = GetPrimeDifficulty(CBigNum(pResponse.first + pResponse.second), 1);
 				printf("[MASTER] Share Found | Difficulty %f | Hash %s  --> [Accepted]\n", nDiff, pResponse.first.ToString().substr(0, 20).c_str());
-				//totalShareWeight += pow(13.0, nDiff - 2.0);
 				totalShareWeight += pow(25.0, floor(nDiff) - 3.0); //For better share rewards that pools should implement
 			}
 
@@ -641,8 +647,8 @@ namespace Core
 		//unsigned int nBestHeight = 0;
 
 		const uint16_t maxJobs = nSieveThreads * 3;
-		const uint16_t originSegmentSize = floor(153.0 / (float)nSieveThreads);
-
+		//const uint16_t originSegmentSize = floor(153.0 / (float)nSieveThreads);
+		const uint16_t originSegmentSize = floor(32.0 / (float)nSieveThreads);
 		loop
 		{
 			try
@@ -745,9 +751,9 @@ namespace Core
 										
 					nBlocksFoundCounter++;
 
-					//printf("\nSubmitting Block %s\n", data.baseHash->GetHex().c_str());
+					printf("\nSubmitting Block %s\nNonce: %llu\n", data.baseHash->GetHex().c_str(), data.nNonce);
 
-					printf("[MASTER] Prime Cluster of Difficulty %f Found \n", GetPrimeDifficulty(*data.baseHash + data.nNonce, 0));
+					printf("[MASTER] Prime Cluster of Difficulty %f Found \n", GetPrimeDifficulty(*data.baseHash + data.nNonce, 2));
 					
 					/** Attempt to Submit the Block to Network. **/
 					unsigned char RESPONSE = CLIENT->SubmitBlock(*data.hashMerkleRoot, data.nNonce);
@@ -882,10 +888,10 @@ namespace Core
 		printf("AVG Time - Sieve: %llu | PTest: %llu | Siv/s: %-7.03f | Tst/s: %-7.03f", avgSieveTime, testCount == 0 ? 0 : pTestTime / testCount, SPS, TPS);
 		if (!bSoloMining)
 			printf(" | Shares: %llu | Shr/h: %-7.03f | TotalShareValue: %llu | ShrVal/h: %-5.02fK", shareCount, sharePerH, totalShareWeight, shareWeightPerH);
-		//printf("\nAvgCandCnt: %llu / %llu - CandHit : %-2.02f%% 2nd : %-2.02f%%", \
-		//	testCount == 0 ? 0 : candidateCount / testCount, testCount == 0 ? 0 : sieveCandidateCount / testCount, \
-		//	candidateCount == 0 ? 0 : (double)(candidateHitCount * 100) / (double)candidateCount, \
-		//	candidateCount == 0 ? 0 : (double)(candidateHit2Count * 100) / (double)candidateCount);
+		printf("\nAvgCandCnt: %llu / %llu - CandHit : %-2.02f%% 2nd : %-2.02f%%", \
+			testCount == 0 ? 0 : candidateCount / testCount, testCount == 0 ? 0 : sieveCandidateCount / testCount, \
+			candidateCount == 0 ? 0 : (double)(candidateHitCount * 100) / (double)candidateCount, \
+			candidateCount == 0 ? 0 : (double)(candidateHit2Count * 100) / (double)candidateCount);
 		printf("\n\n");
 	}
 
@@ -1016,7 +1022,7 @@ namespace Core
 
 				std::vector<std::pair<uint64_t,uint16_t>>  nonces;
 				int64 nStartTime = GetTimeMicros();
-				nPrimes += primeTest.FindTuples(job.candidates, job.zPrimeOrigin, job.zFirstSieveElement, &nonces);
+				nPrimes += primeTest.FindTuples(job.candidates, job.candidateMasks, job.zPrimeOrigin, job.zFirstSieveElement, &nonces);
 				//nPrimes += find_tuples2(job.candidates, zPrimorial, job.zPrimeOrigin, job.zFirstSieveElement, 3, &nonces);
 				pTestTime += (GetTimeMicros() - nStartTime);
 				testCount++;
@@ -1083,6 +1089,18 @@ void  INThandler(int sig)
 
 int main(int argc, char *argv[])
 {
+	//char * testHash = "dddc9981c4e917fc3d20c14c6acf3788e29221e5d7d608cf332d0cbbba0e640cebbafe55ba7a8887dfa863597724f3f6894797e16d1f74c26ed451fec1a83316f78c6797e6bc7cf2be4b814f57c77b85691e966dff441d875e82d003ae02e5c4bf70ba0bf10b504273af8148b0235f736018017abf57a41332c969ac5c62dfea";
+	//CBigNum bHash;
+	//bHash.SetHex(testHash);
+	//uint64_t nonce = 50854425456285785;
+
+	//int diff = Core::GetPrimeDifficulty(bHash + nonce, 2);
+
+	//mpz_t zTest;
+	//mpz_init_set_str(zTest, testHash, 16);
+	//mpz_add_ui(zTest, zTest, nonce);
+	
+
 #if (defined _WIN32 || defined WIN32) && !defined __MINGW32__
 	//TODO: Stack in VS ???
 #else
@@ -1128,6 +1146,7 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
+		bUseExperimentalSieve = true;
 		printf("'miner.conf' config file not available... using command line\n");
 		if (argc < 4)
 		{
@@ -1152,8 +1171,8 @@ int main(int argc, char *argv[])
 	if (ADDRESS.length() == 0)
 		bSoloMining = true;
 	
-	int nSieveThreads = GetTotalCores();
-	int nPTestThreads = GetTotalCores();
+	int nSieveThreads = GetTotalCores() - 1;
+	int nPTestThreads = GetTotalCores() ;
 	int nTimeout = 5;
 
 	// When using GPU with OpenACC max sieve threads is one, Prime Test as many as possible
@@ -1198,7 +1217,7 @@ int main(int argc, char *argv[])
 	}
 
 
-	printf("Nexus Prime Pool & Solo Miner 1.2.3 - Created by Videlicet - Optimized by Supercomputing, paulscreen, hashtobewild & mumus\n");
+	printf("Nexus Prime Pool & Solo Miner 1.4 - Created by Videlicet - Optimized by Supercomputing, paulscreen, hashtobewild & mumus\n");
 	if (!bSoloMining) printf("Using Supplied Account Address %s\n", ADDRESS.c_str());
 	else printf("Solo mining mode\n");
 	printf("Initializing Miner \n");
@@ -1214,15 +1233,15 @@ int main(int argc, char *argv[])
 		printf("Pointing a solo miner to a pool server in will result in IP ban from the pool.");
 		Sleep(5000);
 	}
-
-	Core::InitializePrimes();
-
-	nStartTimer = (unsigned int)time(0);
+	
+	
 	Core::nBitArray_Size = Config.nBitArraySize;
 	Core::prime_limit = Config.primeLimit;
 	Core::nPrimeLimit = Config.nPrimeLimit;
 	Core::nPrimorialEndPrime = Config.nPrimorialEndPrime;
+	Core::InitializePrimes();
 	Core::ServerConnection * MINERS = new Core::ServerConnection(IP, PORT, nSieveThreads, nPTestThreads, nTimeout, bSoloMining);
+	nStartTimer = (unsigned int)time(0);
 	loop { Sleep(1000); }
 	do
 	{

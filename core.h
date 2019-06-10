@@ -387,12 +387,15 @@ namespace LLP
 	
 }
 
-#define MAXCANDIDATESPERSIEVE 1000
+//#define MAXCANDIDATESPERSIEVE 1000
 #define MAX_PRIME_TEST_JOBQUEUE_SIZE 1000
 #define MAX_SIEVE_JOBQUEUE_SIZE 256
 
 extern volatile uint64 sieveCandidateCount;
 extern volatile uint64 candidateCount;
+extern volatile uint64 candidateHitCount;
+extern volatile uint64 candidateHit2Count;
+
 extern bool bUseExperimentalSieve;
 
 namespace Core
@@ -405,6 +408,7 @@ namespace Core
 		CBigNum	*	baseHash;
 		uint512	*	hashMerkleRoot;
 		unsigned long  * candidates;
+		uint16_t * candidateMasks;
 		mpz_ptr		zFirstSieveElement;
 		mpz_ptr		zPrimeOrigin;
 	}primeTestJob;
@@ -428,8 +432,8 @@ namespace Core
 	}sieveJob;
 
 
-	extern unsigned long *primes;
-	extern unsigned long *inverses;
+	extern uint32_t *primes;
+	extern uint32_t *inverses;
 	extern unsigned int nBitArray_Size;
 	extern mpz_t  zPrimorial;
 
@@ -437,8 +441,11 @@ namespace Core
 	extern unsigned int nPrimeLimit;
 	extern unsigned int nPrimorialEndPrime;
 
+
 	extern uint64 octuplet_origins[];
 	extern uint64 tentuplet2_origins[];
+	extern uint64 a19tuplet_origins[];
+	extern uint64 a13tuplet_origins[];
 
 	void InitializePrimes();
 	unsigned int SetBits(double nDiff);
@@ -454,7 +461,9 @@ namespace Core
 	
 	int mp_exptmod(const mpz_ptr inBase, const mpz_ptr exponent, mpz_ptr modulus, mpz_ptr result);
 
-	void cpusieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
+	void cpusieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
+
+	void AdvancedSieve(uint16_t * sieve1, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates, uint16_t * candidateMasks);
 
 
 	/** Class to hold the basic data a Miner will use to build a Block.
@@ -472,7 +481,7 @@ namespace Core
 		LLP::Timer IDLE_TIME;
 		boost::mutex MUTEX;
 		uint64_t* bit_array_sieve;
-		
+		uint16_t* new_sieve;
 	
 
 
@@ -480,11 +489,14 @@ namespace Core
 		MinerThread(ServerConnection* cConnection) : cServerConnection(cConnection), fNewBlock(true), fBlockWaiting(false), fNewBlockRestart(true), THREAD(boost::bind(&MinerThread::PrimeMiner, this)) 
 		{ 
 			bit_array_sieve = (uint64_t *)aligned_alloc(64, (nBitArray_Size) / 8);			
+			new_sieve = (uint16_t *)aligned_alloc(64, (nBitArray_Size) * sizeof(uint16_t));
+
 		}
 
 		~MinerThread()
 		{
 			free(bit_array_sieve);
+			free(new_sieve);
 		}
 
 		void PrimeMiner();
@@ -577,9 +589,13 @@ namespace Core
 
 		CPrimeTest();
 
-		bool FermatTest();
+#define PP 0xE221F97C30E94E1DL	/* 3 x 5 x 7 x 11 x ... x 53 */
+#define PP_INVERTED 0x21CFE6CFC938B36BL
+#define PP_FIRST_OMITTED 59
 
-		int FindTuples(unsigned long * candidates, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, std::vector<std::pair<uint64_t, uint16_t>> * nonces);
+		bool FermatTest(bool useTrialDivision = false);
+
+		int FindTuples(unsigned long * candidates, uint16_t * candidateMasks, mpz_t zPrimeOrigin, mpz_t zFirstSieveElement, std::vector<std::pair<uint64_t, uint16_t>> * nonces);
 
 	};
 

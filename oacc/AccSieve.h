@@ -6,12 +6,12 @@
 #include <vector>
 #include <stdint.h>
 
-#define MAXCANDIDATESPERSIEVE 1000
+#define MAXCANDIDATESPERSIEVE 5000
 
 #ifdef __cplusplus
 extern "C" {
 #endif 
-	void pgisieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, unsigned long * primes, unsigned long * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
+	void pgisieve(uint64_t * sieve, unsigned int sieveSize, mpz_t zPrimorial, mpz_t zPrimeOrigin, unsigned long long ktuple_origin, uint32_t * primes, uint32_t * inverses, unsigned int nPrimorialEndPrime, unsigned int nPrimeLimit, mpz_t * zFirstSieveElement, unsigned long * candidates);
 	
 #ifdef __cplusplus
 }
