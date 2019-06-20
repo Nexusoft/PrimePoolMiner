@@ -9,7 +9,14 @@
 #include <conio.h>
 #include <time.h>
 typedef int pid_t;
-#define aligned_alloc(a, s)		malloc(s)
+
+//#ifdef HAVE__ALIGNED_MALLOC
+#include <malloc.h>
+#define aligned_alloc(a, s)		_aligned_malloc(s)
+//#else
+//#define aligned_alloc(a, s)		malloc(s)
+//#endif
+
 #define gmtime_r(now, tm_time)		_gmtime64_s(tm_time, now)
 typedef unsigned long int pthread_t;
 #elif !defined __MINGW32__
@@ -17,6 +24,20 @@ typedef unsigned long int pthread_t;
 	#include <sys/time.h>
 	#include <sys/resource.h>
 	#include <sys/resource.h>
+#endif
+
+#ifndef gmtime_r
+inline struct tm* gmtime_r(const time_t* t, struct tm* r)
+{
+    // gmtime is threadsafe in windows because it uses TLS
+    struct tm *theTm = gmtime(t);
+    if (theTm) {
+        *r = *theTm;
+        return r;
+    } else {
+        return 0;
+    }
+}
 #endif
 
 #include <string>
@@ -46,8 +67,7 @@ int GetTotalCores();
 uint64_t mpz2uint64(mpz_t n);
 
 /** Convert a Bignum into Mpz integer for GMP. **/
-int bignum2mpz(const BIGNUM *bn, mpz_t g);
-
+void bignum2mpz(const BIGNUM *bn, mpz_t &g);
 
 /** Convert a 32 bit Unsigned Integer to Byte Vector using Bitwise Shifts. **/
 inline std::vector<unsigned char> uint2bytes(unsigned int UINT)

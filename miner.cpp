@@ -136,7 +136,7 @@ namespace Core
 				int startOrigin = sJob->nStartOrigin;
 				int stopOrigin = sJob->nStartOrigin + sJob->nMaxOriginCount;				
 				cServerConnection->sieveJobQueuePassive->push(sieveJobId);
-				bignum2mpz(&BaseHash, zPrimeOrigin);
+				bignum2mpz(BaseHash.getBN(), zPrimeOrigin);
 
 				for (j = startOrigin; j < stopOrigin; j++)
 				{

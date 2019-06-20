@@ -301,7 +301,11 @@ namespace Core
 			}
 		}
 		for(i=2;i<=prime_limit;i++) if(bit_array_sieve[i]==1) n += 1;
+		#ifdef WIN32
+		primes = (uint32_t*)_aligned_malloc(64, (n + 1) * sizeof(uint32_t));
+		#else
 		primes = (uint32_t*)aligned_alloc(64, (n + 1) * sizeof(uint32_t));
+		#endif
 		primes[0] = n;
 		j = 1;
 		for(i=2;i<=prime_limit;i++) if(bit_array_sieve[i]==1) {
@@ -342,8 +346,11 @@ namespace Core
 
 		int nSize = mpz_sizeinbase(zPrimorial,2);
 		printf("\nPrimorial Size = %d-bit\n\n", nSize);
-
+		#ifdef WIN32
+		inverses=(uint32_t *) _aligned_malloc(64, (nPrimeLimit+1)*sizeof(uint32_t));
+		#else
 		inverses=(uint32_t *) aligned_alloc(64, (nPrimeLimit+1)*sizeof(uint32_t));
+		#endif
 		memset(inverses, 0, (nPrimeLimit+1) * sizeof(uint32_t));
 
 		mpz_t zPrime, zInverse, zResult;
@@ -699,7 +706,7 @@ namespace Core
 		Difficulty is represented as so V.X
 		V is the whole number, or Cluster Size, X is a proportion
 		of Fermat Remainder from last Composite Number [0 - 1] **/
-	double GetPrimeDifficulty(CBigNum prime, int checks)
+	double GetPrimeDifficulty(const CBigNum& prime, int checks)
 	{
 		CBigNum lastPrime = prime;
 		CBigNum next = prime + 2;
@@ -725,7 +732,7 @@ namespace Core
 		return (clusterSize + fractionalRemainder);
 	}
 
-	double GetSieveDifficulty(CBigNum next, unsigned int clusterSize)
+	double GetSieveDifficulty(const CBigNum& next, unsigned int clusterSize)
 	{
 		///calulate the rarety of cluster from proportion of fermat remainder of last prime + 2
 		///keep fractional remainder in bounds of [0, 1]
@@ -737,7 +744,7 @@ namespace Core
 	}
 
 	/** Gets the unsigned int representative of a decimal prime difficulty **/
-	unsigned int GetPrimeBits(CBigNum prime, int checks)
+	unsigned int GetPrimeBits(const CBigNum& prime, int checks)
 	{
 		return SetBits(GetPrimeDifficulty(prime, checks));
 	}
@@ -745,7 +752,7 @@ namespace Core
 	/** Breaks the remainder of last composite in Prime Cluster into an integer. 
 		Larger numbers are more rare to find, so a proportion can be determined 
 		to give decimal difficulty between whole number increases. **/
-	unsigned int GetFractionalDifficulty(CBigNum composite)
+	unsigned int GetFractionalDifficulty(const CBigNum& composite)
 	{
 		/** Break the remainder of Fermat test to calculate fractional difficulty [Thanks Sunny] **/
 		return ((composite - FermatTest(composite, 2) << 24) / composite).getuint();
@@ -753,7 +760,7 @@ namespace Core
 	
 	/** Determines if given number is Prime. Accuracy can be determined by "checks". 
 		The default checks the NXS Network uses is 2 **/
-	bool PrimeCheck(CBigNum test, int checks)
+	bool PrimeCheck(const CBigNum& test, int checks)
 	{
 		/** Check C: Fermat Tests */
 		CBigNum n = 3;
@@ -765,20 +772,20 @@ namespace Core
 
 	/** Simple Modular Exponential Equation a^(n - 1) % n == 1 or notated in Modular Arithmetic a^(n - 1) = 1 [mod n]. 
 		a = Base or 2... 2 + checks, n is the Prime Test. Used after Miller-Rabin and Divisor tests to verify primality. **/
-	CBigNum FermatTest(CBigNum n, CBigNum a)
+	CBigNum FermatTest(const CBigNum& n, const CBigNum& a)
 	{
 		CAutoBN_CTX pctx;
 		CBigNum e = n - 1;
 		CBigNum r;
-		BN_mod_exp(&r, &a, &e, &n, pctx);
+		BN_mod_exp(r.getBN(), a.getBN(), e.getBN(), n.getBN(), pctx);
 		
 		return r;
 	}
 
 	/** Miller-Rabin Primality Test from the OpenSSL BN Library. **/
-	bool Miller_Rabin(CBigNum n, int checks)
+	bool Miller_Rabin(const CBigNum& n, int checks)
 	{
-		return (BN_is_prime(&n, checks, NULL, NULL, NULL) == 1);
+		return (BN_is_prime_ex(n.getBN(), checks, nullptr, nullptr) == 1);
 	}
 
 

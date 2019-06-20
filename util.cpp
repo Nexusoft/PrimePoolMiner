@@ -28,21 +28,25 @@ uint64_t mpz2uint64(mpz_t n)
     return (((uint64_t)hi) << 32) + lo;
 }
 
-int bignum2mpz(const BIGNUM *bn, mpz_t g)
+/*int bignum2mpz(const BIGNUM *bn, mpz_t *g)
 {
-	bn_check_top(bn);
-	if(((sizeof(bn->d[0]) * 8) == GMP_NUMB_BITS) && (BN_BITS2 == GMP_NUMB_BITS)) 
+	//bn_check_top(bn);
+	if((BN_num_bits(bn) == GMP_NUMB_BITS) && (BN_BITS2 == GMP_NUMB_BITS)) 
 	{
-		/* The common case */
-		if(!_mpz_realloc (g, bn->top))
-			return 0;
-		memcpy(&g->_mp_d[0], &bn->d[0], bn->top * sizeof(bn->d[0]));
-		g->_mp_size = bn->top;
-		if(bn->neg)
-			g->_mp_size = -g->_mp_size;
-			
-		return 1;
-	}
+        size_t len;
+        void *p;
+        
+        mpz_init (*g);
+        
+        len = BN_num_bytes(bn);
+        p = malloc(len);
+        BN_bn2bin(bn, p);
+        mpz_set_str(g, p, len);
+        //mp_int_read_unsigned(g, p, len);
+        free(p);
+        
+        return 1;
+    }
 	else
 	{
 		char *tmpchar = BN_bn2hex(bn);
@@ -54,6 +58,16 @@ int bignum2mpz(const BIGNUM *bn, mpz_t g)
 		
 		return 0;
 	}
+}
+*/
+
+void bignum2mpz(const BIGNUM *bn, mpz_t &g)
+{
+        uint8_t p[128] = {0};
+     
+        mpz_init(g);
+        BN_bn2bin(bn, p);
+        mpz_import(g, BN_num_bytes(bn), -1, sizeof(uint8_t), 0, 0, &p);
 }
 
 void SetCurrentThreadPriority(int priority)

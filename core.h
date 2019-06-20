@@ -45,9 +45,14 @@ namespace Core
 			return SK1024(BEGIN(nVersion), END(nBits));
 		}
 
+        uint1024 ProofHash() const
+        {
+            return SK1024(BEGIN(nVersion), END(nBits));
+        }
+
 		CBigNum GetPrime() const
 		{
-			return CBigNum(GetHash() + nNonce);
+			return CBigNum((nVersion < 5 ? GetHash() : ProofHash()) + nNonce);
 		}
 
 		void Set(CBlock block)
@@ -449,15 +454,15 @@ namespace Core
 
 	void InitializePrimes();
 	unsigned int SetBits(double nDiff);
-	double GetPrimeDifficulty(CBigNum prime, int checks);
-	double GetSieveDifficulty(CBigNum next, unsigned int clusterSize);
-	unsigned int GetPrimeBits(CBigNum prime, int checks);
-	unsigned int GetFractionalDifficulty(CBigNum composite);	
-	bool DivisorCheck(CBigNum test);
-	unsigned long PrimeSieve(CBigNum BaseHash, unsigned int nDifficulty, unsigned int nHeight);
-	bool PrimeCheck(CBigNum test, int checks);
-	CBigNum FermatTest(CBigNum n, CBigNum a);
-	bool Miller_Rabin(CBigNum n, int checks);
+	double GetPrimeDifficulty(const CBigNum& prime, int checks);
+	double GetSieveDifficulty(const CBigNum& next, unsigned int clusterSize);
+	unsigned int GetPrimeBits(const CBigNum& prime, int checks);
+	unsigned int GetFractionalDifficulty(const CBigNum& composite);	
+	bool DivisorCheck(const CBigNum& test);
+	unsigned long PrimeSieve(const CBigNum& BaseHash, unsigned int nDifficulty, unsigned int nHeight);
+	bool PrimeCheck(const CBigNum& test, int checks);
+	CBigNum FermatTest(const CBigNum& n, const CBigNum& a);
+	bool Miller_Rabin(const CBigNum& n, int checks);
 	
 	int mp_exptmod(const mpz_ptr inBase, const mpz_ptr exponent, mpz_ptr modulus, mpz_ptr result);
 
@@ -488,8 +493,13 @@ namespace Core
 		
 		MinerThread(ServerConnection* cConnection) : cServerConnection(cConnection), fNewBlock(true), fBlockWaiting(false), fNewBlockRestart(true), THREAD(boost::bind(&MinerThread::PrimeMiner, this)) 
 		{ 
+			#ifdef WIN32
+			bit_array_sieve = (uint64_t *)_aligned_malloc(64, (nBitArray_Size) / 8);			
+			new_sieve = (uint16_t *)_aligned_malloc(64, (nBitArray_Size) * sizeof(uint16_t));
+			#else
 			bit_array_sieve = (uint64_t *)aligned_alloc(64, (nBitArray_Size) / 8);			
 			new_sieve = (uint16_t *)aligned_alloc(64, (nBitArray_Size) * sizeof(uint16_t));
+			#endif
 
 		}
 
