@@ -39,6 +39,7 @@ volatile uint32_t nBlocksAccepted = 0;
 volatile uint32_t nBlocksRejected = 0;
 bool bSoloMining = false;
 volatile bool exitSignal = false;
+volatile bool fResetThreads = false;
 std::string ADDRESS;
 uint64 nCurrentPayout = 0, nAccountBalance = 0;
 bool bUseExperimentalSieve;
@@ -68,10 +69,7 @@ namespace Core
 				//	continue;
 				if (bBlockSubmission)
 					continue;
-				//{
-				//	LOCK(MUTEX);
-				//	fNewBlockRestart = false;
-				//}
+				
 
 				/** Lock the Thread at this Mutex when Changing Block Pointer. **/
 				//CBigNum BaseHash(hashPrimeOrigin);
@@ -111,11 +109,18 @@ namespace Core
 					Sleep(20);
 				}
 				sieveJob * sJob = cServerConnection->sieveJobs.at(sieveJobId);
-				if (sJob->nHeight < nBestHeight)
+				if (sJob->nHeight < nBestHeight || fResetThreads)
 				{
 					cServerConnection->sieveJobQueuePassive->push(sieveJobId);
 					continue;
 				}
+
+				/* Reset the fNewBlockRestart flag since we are on a new iteration */
+				{
+					LOCK(MUTEX);
+					fNewBlockRestart = false;
+				}
+
 				CBigNum BaseHash;
 				if (sJob->pBlock.nHeight != 0) //solo
 				{
@@ -142,7 +147,7 @@ namespace Core
 				{
 					//if (fNewBlock || fBlockWaiting || !fNewBlockRestart)
 					//	break;
-					if (fNewBlock || bBlockSubmission)
+					if (fNewBlock || bBlockSubmission || fNewBlockRestart)
 						break;
 
 					if (nCurrentJobBlockHeight < nBestHeight)
@@ -171,7 +176,8 @@ namespace Core
 					mpz_set(ptJob.zFirstSieveElement, zFirstSieveElement);
 					mpz_set(ptJob.zPrimeOrigin, zPrimeOrigin);
 
-					cServerConnection->pcJobQueueActive->push(primeTestJobId);
+					if(!fNewBlockRestart)
+						cServerConnection->pcJobQueueActive->push(primeTestJobId);
 
 					int64 nElapsedTime = nAfterSieve - nStartTime;
 					sieveTime += nElapsedTime;
@@ -256,6 +262,8 @@ namespace Core
 	/** Reset the block on each of the Threads. **/
 	void ServerConnection::ResetThreads()
 	{
+		fResetThreads = true; 
+
 		/** Reset each individual flag to tell threads to stop mining. **/
 		for (int nIndex = 0; nIndex < THREADS.size(); nIndex++)
 		{
@@ -287,7 +295,6 @@ namespace Core
 
 		while (!RESPONSE_QUEUE.empty())
 			RESPONSE_QUEUE.pop();
-
 
 	}
 
@@ -569,8 +576,10 @@ namespace Core
 							//printf("Created Job (%u) from Block %s \n", jobId, job->primeOrigin.GetHex().substr(0, 20).c_str());
 						}
 						THREADS[nIndex]->fNewBlock = false;
-						THREADS[nIndex]->fNewBlockRestart = false;
+						//THREADS[nIndex]->fNewBlockRestart = false;
 					}
+
+					fResetThreads = false;
 				}
 
 			}
@@ -647,8 +656,8 @@ namespace Core
 		{
 			try
 			{
-				/** Run this thread at 100 Cycles per Second. **/
-				Sleep(10);
+				/** Run this thread at 5 Cycles per Second. **/
+				Sleep(200);
 				if (exitSignal)
 				{
 					CLIENT->Disconnect();
@@ -686,8 +695,10 @@ namespace Core
 					continue;
 				}
 
+				bool fNewRound = CLIENT->NewRound();
+				
 				unsigned int nHeight = CLIENT->GetHeight();
-				if (nHeight == 0 || nHeight < 10)
+				if (nHeight == -1)
 				{
 					printf("Failed to Update Height...\n");
 					CLIENT->Disconnect();
@@ -698,10 +709,10 @@ namespace Core
 				}
 
 				/** If there is a new block, Flag the Threads to Stop Mining. **/
-				if (nHeight != nBestHeight)
+				if (fNewRound || nHeight != nBestHeight)
 				{
 					nBestHeight = nHeight;
-					printf("[MASTER] Coinshield Network: New Block %u\n", nHeight);
+					printf("[MASTER] NXS Network: New Block %u\n", nHeight);
 					ResetThreads();
 				}
 
@@ -739,6 +750,7 @@ namespace Core
 				/** Submit any Shares from the Mining Threads. **/
 				while (!submitBlockQueue->empty())
 				{
+
 					bBlockSubmission = true;
 					submitBlockData data;
 					submitBlockQueue->pop(data);
@@ -756,13 +768,18 @@ namespace Core
 					/** Check the Response from the Server.**/
 					if (RESPONSE == 200)
 					{
-						printf("[MASTER] Block Accepted By Coinshield Network.\n");
+						printf("[MASTER] Block Accepted By NXS Network.\n");
 						nBlocksAccepted++;
+
+						/* Clear the submission queue and reset threads as the height is going to change. */
+						submitBlockQueue->consume_all([](submitBlockData data) {});
+						ResetThreads();
 					}
 					else if (RESPONSE == 201)
 					{
-						printf("[MASTER] Block Rejected by Coinshield Network.\n");
+						printf("[MASTER] Block Rejected by NXS Network.\n");
 						nBlocksRejected++;
+						ResetThreads();
 					}
 					/** If the Response was Bad, Reconnect to Server. **/
 					else
@@ -801,8 +818,10 @@ namespace Core
 								//printf("Created Job (%u) from Block %s \n", jobId, job->pBlock.GetHash().GetHex().substr(0, 20).c_str());
 							}
 							THREADS[nIndex]->fNewBlock = false;
-							THREADS[nIndex]->fNewBlockRestart = false;
+							//THREADS[nIndex]->fNewBlockRestart = false;
 						}
+
+						
 
 					}
 					else
@@ -815,6 +834,8 @@ namespace Core
 						ResetThreads();
 					}
 				}
+
+				fResetThreads = false;
 
 
 			}
@@ -1002,12 +1023,13 @@ namespace Core
 		{
 			if (exitSignal)
 				break;
+			
 			int jobId = 0;
 			if (pcJobQueueActive->pop(jobId))
 			{
 				
-				//printf("got job id %u on thread %u\n", jobId, boost::this_thread::get_id());
-				if (bBlockSubmission)
+				/* Pause mining if submitting a block */
+				if (bBlockSubmission )
 				{
 					Sleep(20);
 					continue;
@@ -1022,6 +1044,9 @@ namespace Core
 				testCount++;
 				pcJobQueuePassive->push(jobId);
 				
+				/* Before we check the nonces, make one last check that the threads have not been flagged to be reset */
+				if(fResetThreads)
+					continue;
 					
 				for (std::vector<std::pair<uint64_t, uint16_t>>::iterator it = nonces.begin(); it != nonces.end(); ++it)
 				{

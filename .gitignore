@@ -19,3 +19,9 @@
 /obj/x64/Release
 *.stackdump
 /x64
+
+liboaccminer\.so
+
+nexus_cpuminer
+
+\.vscode/

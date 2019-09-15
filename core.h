@@ -195,6 +195,7 @@ namespace LLP
 			NEW_BLOCK    = 130,
 			GET_BALANCE  = 131,
 			GET_PAYOUT   = 132,
+			GET_ROUND	 = 133,
 			
 			
 			/** RESPONSE PACKETS **/
@@ -345,16 +346,31 @@ namespace LLP
 
 			return res;
 		}
+
+		bool NewRound()
+		{
+			this->WritePacket(GetPacket(GET_ROUND));
+
+			Packet RESPONSE = ReadNextPacket(nTimeout);
+
+			if (RESPONSE.IsNull())
+				return false;
+			
+			bool fNewRound = RESPONSE.HEADER == NEW_ROUND;
+			ResetPacket();
+
+			return fNewRound;
+		}
 		
 		
-		unsigned int GetHeight()
+		int GetHeight()
 		{
 			this->WritePacket(GetPacket(SOLO_GET_HEIGHT));
 
 			Packet RESPONSE = ReadNextPacket(nTimeout);
 
 			if (RESPONSE.IsNull() || RESPONSE.LENGTH == 0)
-				return 0;
+				return -1;
 
 			unsigned int nHeight = bytes2uint(RESPONSE.DATA);
 			ResetPacket();
