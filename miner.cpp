@@ -109,7 +109,7 @@ namespace Core
 					Sleep(20);
 				}
 				sieveJob * sJob = cServerConnection->sieveJobs.at(sieveJobId);
-				if (sJob->nHeight < nBestHeight || fResetThreads)
+				if (sJob->nHeight < nBestHeight || fNewBlock)
 				{
 					cServerConnection->sieveJobQueuePassive->push(sieveJobId);
 					continue;
