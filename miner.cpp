@@ -827,10 +827,10 @@ namespace Core
 					else
 					{
 						printf("<DEBUG> Got an invalid BLOCK\n");
-						CLIENT->Disconnect();
-						Sleep(500);												
-						CLIENT = new LLP::Miner(IP, PORT);
-						Sleep(500);
+						//CLIENT->Disconnect();
+						//Sleep(500);												
+						//CLIENT = new LLP::Miner(IP, PORT);
+						//Sleep(500);
 						ResetThreads();
 					}
 				}
